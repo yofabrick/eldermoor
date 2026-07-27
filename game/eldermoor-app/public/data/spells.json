@@ -1,0 +1,29 @@
+{
+  "version": "0.4",
+  "spells": [
+    { "id": "S01", "name": "Arc Bolt", "type": "offense", "mana": 8, "strain": 0, "unlock": "start", "role": "basic_ranged", "tags": ["projectile"] },
+    { "id": "S02", "name": "Ward Pulse", "type": "defense", "mana": 14, "strain": 2, "unlock": "start", "role": "block_interrupt", "tags": ["ward", "interrupt"] },
+    { "id": "S03", "name": "Bind Thread", "type": "soften", "mana": 12, "strain": 4, "unlock": "start", "role": "capture_assist", "tags": ["capture", "slow"] },
+    { "id": "S04", "name": "Thorn Lash", "type": "offense", "mana": 16, "strain": 2, "unlock": "craft:thorn_primer", "role": "close_cone", "tags": ["nature"] },
+    { "id": "S05", "name": "Ember Fan", "type": "offense", "mana": 18, "strain": 3, "unlock": "grimoire:ember_primer", "role": "fire_dot", "tags": ["fire"] },
+    { "id": "S06", "name": "Dash Step", "type": "mobility", "mana": 6, "strain": 6, "unlock": "start", "role": "reposition", "tags": ["dash"] },
+    { "id": "S07", "name": "Lumen Needle", "type": "utility", "mana": 10, "strain": 1, "unlock": "craft:lumen_charm", "role": "reveal_weakpoint", "tags": ["light", "insight"] },
+    { "id": "S08", "name": "Mire Filter", "type": "survival", "mana": 20, "strain": 2, "unlock": "grimoire:mire_filtration", "role": "poison_bubble", "tags": ["poison_resist"] },
+    { "id": "S09v", "name": "Verdant Mend", "type": "vita", "mana": 22, "strain": 2, "unlock": "path:vita", "role": "heal", "tags": ["heal", "vita"] },
+    { "id": "S09m", "name": "Brand Sting", "type": "mortis", "mana": 18, "strain": 8, "unlock": "path:mortis", "role": "burst_control", "tags": ["mortis", "blood"] },
+    { "id": "S10v", "name": "Living Snare", "type": "vita", "mana": 24, "strain": 4, "unlock": "path:vita+grimoire", "role": "soften_no_damage", "tags": ["capture", "vita"] },
+    { "id": "S10m", "name": "Sever Tether", "type": "mortis", "mana": 28, "strain": 12, "unlock": "path:mortis+grimoire", "role": "execute_channel", "tags": ["capture", "mortis", "risk"] }
+  ],
+  "captureMethods": [
+    { "id": "snare", "name": "Chalk Snare", "resource": "chalk_snare_kit", "skill": "placement_kite" },
+    { "id": "barbed_snare", "name": "Barbed Snare", "resource": "barbed_snare_kit", "skill": "placement_kite" },
+    { "id": "ley_snare", "name": "Ley Snare", "resource": "ley_snare_kit", "skill": "elite_setup" },
+    { "id": "bait", "name": "Bait Offering", "resource": "species_bait", "skill": "knowledge" },
+    { "id": "bond", "name": "Bonding Focus", "resource": "mana_channel", "skill": "channel_under_fire" },
+    { "id": "living_snare", "name": "Living Snare", "resource": "spell:S10v", "skill": "vita_soften" },
+    { "id": "pact_ritual", "name": "Pact Ritual", "resource": "pact_chalk_duo", "skill": "coop_setup" },
+    { "id": "dominance_brand", "name": "Dominance Brand", "resource": "brand_iron", "skill": "interrupt_timing" },
+    { "id": "quiet_bond", "name": "Quiet Bond", "resource": "mana_low_light", "skill": "stealth_channel" },
+    { "id": "sever_bind", "name": "Sever-Bind", "resource": "spell:S10m", "skill": "high_risk" }
+  ]
+}

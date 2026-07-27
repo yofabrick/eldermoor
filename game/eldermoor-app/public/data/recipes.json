@@ -1,0 +1,40 @@
+{
+  "version": "0.4",
+  "stations": [
+    { "id": "campfire", "tier": 0, "jobs": ["cook"] },
+    { "id": "workbench", "tier": 0, "jobs": ["craft_tools"] },
+    { "id": "pen_simple", "tier": 0, "jobs": ["housing"] },
+    { "id": "lumber_post", "tier": 0, "jobs": ["lumber_light"], "input": [], "output": ["wood_log"], "secondsPerOutput": 25 },
+    { "id": "smelter", "tier": 1, "jobs": ["smelt_assist"], "input": ["ore_bog", "fuel"], "output": ["ingot_iron"], "secondsPerOutput": 40 },
+    { "id": "alchemy_still", "tier": 1, "jobs": ["essence_still", "herb"], "input": ["glowherb"], "output": ["potion_clarity"], "secondsPerOutput": 35 },
+    { "id": "greenhouse", "tier": 2, "jobs": ["greenhouse"], "input": ["seed", "water"], "output": ["fodder", "glowherb"], "secondsPerOutput": 50 },
+    { "id": "magma_forge", "tier": 3, "jobs": ["magma_forge"], "input": ["ingot_iron", "ash"], "output": ["ingot_rune"], "secondsPerOutput": 55 },
+    { "id": "ward_stone", "tier": 1, "jobs": ["defense"] },
+    { "id": "scout_perch", "tier": 1, "jobs": ["scout"] },
+    { "id": "path_shrine_vita", "tier": 2, "jobs": ["ritual_vita"] },
+    { "id": "brandpit_mortis", "tier": 2, "jobs": ["ritual_mortis"] }
+  ],
+  "crafts": [
+    { "id": "chalk_snare_kit", "station": "workbench", "inputs": { "wood_log": 2, "fiber": 1 }, "time": 5 },
+    { "id": "barbed_snare_kit", "station": "workbench", "inputs": { "ingot_iron": 1, "fiber": 2 }, "time": 8 },
+    { "id": "shiny_tin_bait", "station": "workbench", "inputs": { "ingot_iron": 1 }, "time": 3 },
+    { "id": "ember_char_bait", "station": "campfire", "inputs": { "wood_log": 1, "ash": 1 }, "time": 4 },
+    { "id": "berry_mash_bait", "station": "campfire", "inputs": { "glowherb": 2 }, "time": 3 },
+    { "id": "bonding_focus_cracked", "station": "workbench", "inputs": { "wood_log": 1, "crystal_shard": 1 }, "time": 6 },
+    { "id": "brand_iron", "station": "smelter", "inputs": { "ingot_iron": 2, "resin_black": 1 }, "time": 10 },
+    { "id": "potion_clarity", "station": "alchemy_still", "inputs": { "glowherb": 3, "water": 1 }, "time": 6 },
+    { "id": "potion_sapband", "station": "alchemy_still", "inputs": { "glowherb": 2, "resin": 1 }, "time": 6 },
+    { "id": "fogbreak_vial", "station": "alchemy_still", "inputs": { "toxin_gland": 1, "water": 2 }, "time": 8 },
+    { "id": "boar_hide_wrap", "station": "workbench", "inputs": { "hide_boar": 3, "fiber": 2 }, "time": 12 },
+    { "id": "ward_charm", "station": "workbench", "inputs": { "crystal_shard": 1, "fiber": 1 }, "time": 8 }
+  ],
+  "heatActions": [
+    { "action": "build_tower_module", "heat": 8 },
+    { "action": "public_mortis_rite", "heat": 12 },
+    { "action": "kill_watcher", "heat": 15 },
+    { "action": "kill_envoy", "heat": 25 },
+    { "action": "bind_elite", "heat": 10 },
+    { "action": "low_profile_day", "heat": -2 },
+    { "action": "pay_tax", "heat": -8 }
+  ]
+}

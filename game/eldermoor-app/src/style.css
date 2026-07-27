@@ -1,0 +1,8 @@
+/* Eldermoor — base styles live mostly in index.html; this file satisfies Vite entry */
+html, body, #app {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0b0a12;
+}

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Eldermoor — Design Bible</title>
+<style>
+  :root {
+    --bg: #0b0a12;
+    --panel: #161322;
+    --panel2: #1c1830;
+    --gold: #c9a227;
+    --goldsoft: #e8d48b;
+    --text: #f4f0e6;
+    --muted: #a39bb8;
+    --vita: #6bcb8a;
+    --mortis: #a78bfa;
+    --danger: #e85d5d;
+    --line: #2e2848;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+  }
+  header {
+    padding: 3rem 1.5rem 2rem;
+    border-bottom: 1px solid var(--line);
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(201,162,39,.15), transparent 50%),
+      radial-gradient(ellipse at 80% 0%, rgba(167,139,250,.12), transparent 45%),
+      var(--bg);
+  }
+  header h1 {
+    font-family: Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(2rem, 5vw, 3rem);
+    color: var(--goldsoft);
+    margin: 0 0 .4rem;
+    letter-spacing: .04em;
+  }
+  header .tag {
+    color: var(--muted);
+    font-size: 1.05rem;
+    max-width: 40rem;
+  }
+  header .meta {
+    margin-top: 1rem;
+    font-size: .85rem;
+    color: var(--gold);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    padding: .75rem 1.5rem;
+    background: rgba(11,10,18,.92);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(8px);
+  }
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: .8rem;
+    padding: .35rem .65rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+  }
+  nav a:hover { color: var(--goldsoft); border-color: var(--gold); }
+  main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  section { margin-bottom: 3rem; scroll-margin-top: 4rem; }
+  h2 {
+    font-family: Georgia, serif;
+    color: var(--goldsoft);
+    font-size: 1.6rem;
+    margin: 0 0 1rem;
+    font-weight: 600;
+  }
+  h3 { color: var(--gold); font-size: 1rem; margin: 1.25rem 0 .5rem; }
+  p, li { color: var(--text); }
+  .muted { color: var(--muted); }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+  }
+  .card h3 { margin-top: 0; }
+  .card.vita { border-top: 3px solid var(--vita); }
+  .card.mortis { border-top: 3px solid var(--mortis); }
+  .card.gold { border-top: 3px solid var(--gold); }
+  .pillars { counter-reset: p; }
+  .pillars .card::before {
+    counter-increment: p;
+    content: "0" counter(p);
+    display: block;
+    font-family: Georgia, serif;
+    color: var(--gold);
+    font-size: 1.2rem;
+    margin-bottom: .35rem;
+  }
+  .loop {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: center;
+  }
+  .loop span {
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    padding: .5rem .75rem;
+    border-radius: 8px;
+    font-size: .9rem;
+  }
+  .loop .arrow { color: var(--gold); border: none; background: none; padding: 0 .15rem; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .88rem;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: .5rem .6rem;
+    text-align: left;
+  }
+  th { background: var(--panel2); color: var(--goldsoft); }
+  tr:nth-child(even) td { background: rgba(22,19,34,.6); }
+  .quote {
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-size: 1.25rem;
+    color: var(--goldsoft);
+    border-left: 3px solid var(--gold);
+    padding: .25rem 0 .25rem 1rem;
+    margin: 1rem 0 1.5rem;
+  }
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 2rem 1.5rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: .85rem;
+  }
+  ul.tight li { margin-bottom: .35rem; }
+  .two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  @media (max-width: 720px) {
+    .two { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>ELDERMOOR</h1>
+  <p class="tag">Design Bible v0.3 — Open-world magic survival with beast economy, Vita/Mortis identity, and war against the High Council. Original IP.</p>
+  <p class="meta">Wild Arcana · Concept package · Not a licensed wizarding product</p>
+</header>
+<nav>
+  <a href="#pitch">Pitch</a>
+  <a href="#pillars">Pillars</a>
+  <a href="#loop">Loop</a>
+  <a href="#capture">Capture</a>
+  <a href="#paths">Paths</a>
+  <a href="#beasts">Beasts</a>
+  <a href="#story">Story</a>
+  <a href="#slice">Slice</a>
+  <a href="#demo">Demo rules</a>
+  <a href="#risks">Risks</a>
+</nav>
+<main>
+
+<section id="pitch">
+  <h2>Pitch</h2>
+  <p class="quote">A discarded mage binds beasts, builds an enclave, chooses Life or Death magic, and grows until the High Council declares war.</p>
+  <div class="grid">
+    <div class="card gold">
+      <h3>The gap</h3>
+      <p class="muted">Wizard fantasy fans got a guided open-world hit, then a vacuum: no creature economy, weak multiplayer fantasy, fenced dark magic, student-on-rails identity.</p>
+    </div>
+    <div class="card gold">
+      <h3>The bet</h3>
+      <p class="muted">Same disruption pattern as creature-survival sandboxes vs stagnant collectors — legally original, emotionally adjacent to unfulfilled wish-fulfillment.</p>
+    </div>
+    <div class="card gold">
+      <h3>One-line systems</h3>
+      <p class="muted">Catch with skill → put to work → automate base → path identity → Heat rises → institutions hunt you.</p>
+    </div>
+  </div>
+</section>
+
+<section id="pillars">
+  <h2>Pillars</h2>
+  <div class="grid pillars">
+    <div class="card"><h3>Beasts first</h3><p class="muted">Labor, war, mount, ethics — not side pets.</p></div>
+    <div class="card"><h3>Your enclave</h3><p class="muted">Camp → tower → private academy.</p></div>
+    <div class="card"><h3>Magic free</h3><p class="muted">Modular spells; Vita / Mortis rewrites systems.</p></div>
+    <div class="card"><h3>MP native</h3><p class="muted">Co-op day one; fair bind scores.</p></div>
+    <div class="card"><h3>Nobody → threat</h3><p class="muted">Heat, Watchers, Council war.</p></div>
+  </div>
+</section>
+
+<section id="loop">
+  <h2>Core loop</h2>
+  <div class="loop">
+    <span>Base manage</span><span class="arrow">→</span>
+    <span>Prepare</span><span class="arrow">→</span>
+    <span>Expedition</span><span class="arrow">→</span>
+    <span>Capture / fight</span><span class="arrow">→</span>
+    <span>Process</span><span class="arrow">→</span>
+    <span>Progress / Heat</span>
+  </div>
+  <p class="muted" style="margin-top:1rem">Session target: meaningful cycle in 15–45 minutes. Always leave a clear next pin.</p>
+</section>
+
+<section id="capture">
+  <h2>Capture is skill</h2>
+  <p>State machine: <strong>Aggro → Soften → Opportunity (Bond Ring) → Method → Resolve</strong>.</p>
+  <div class="grid">
+    <div class="card"><h3>Snare</h3><p class="muted">Placement &amp; kite</p></div>
+    <div class="card"><h3>Bait</h3><p class="muted">Species knowledge</p></div>
+    <div class="card"><h3>Bond</h3><p class="muted">Channel under fire</p></div>
+    <div class="card"><h3>Pact</h3><p class="muted">Co-op ritual</p></div>
+    <div class="card"><h3>Brand</h3><p class="muted">Mortis dominance</p></div>
+    <div class="card"><h3>Sever-bind</h3><p class="muted">High-risk last second</p></div>
+  </div>
+  <p class="muted">Each of the 12 slice beasts has a unique Soften key (pride duel, temperature, ethics fork, etc.).</p>
+</section>
+
+<section id="paths">
+  <h2>Vita / Mortis</h2>
+  <div class="two">
+    <div class="card vita">
+      <h3>Vita — Life</h3>
+      <ul class="tight muted">
+        <li>Pacts, heal, reclaim land</li>
+        <li>Loyal partners, breeding quality</li>
+        <li>Stable compound growth</li>
+        <li>Lower Heat, sanctuary fantasy</li>
+      </ul>
+    </div>
+    <div class="card mortis">
+      <h3>Mortis — Death</h3>
+      <ul class="tight muted">
+        <li>Brands, sacrifice, corrupt</li>
+        <li>Thralls, mutations, spikes</li>
+        <li>Aggressive shortcuts</li>
+        <li>Higher Heat, siege fantasy</li>
+      </ul>
+    </div>
+  </div>
+  <p class="muted">Balance rule: same investment → within ~10% clear time; different texture. Exclusive recipes are lateral.</p>
+</section>
+
+<section id="beasts">
+  <h2>Slice beasts (12)</h2>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Name</th><th>Tier</th><th>Soften key</th><th>Work</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>B01</td><td>Glimmerpouch</td><td>I</td><td>Shiny bait</td><td>Scavenge</td></tr>
+      <tr><td>B02</td><td>Brushback Boar</td><td>I</td><td>Charge whiff</td><td>Lumber / haul</td></tr>
+      <tr><td>B03</td><td>Lantern Hare</td><td>I</td><td>Calm + light</td><td>Scout</td></tr>
+      <tr><td>B04</td><td>Cinderscale</td><td>I</td><td>Douse overheat</td><td>Smelt</td></tr>
+      <tr><td>B05</td><td>Hearthkin</td><td>I</td><td>Ethics fork</td><td>Craft</td></tr>
+      <tr><td>B06</td><td>Mirelurk Stag</td><td>II</td><td>Break plate</td><td>Heavy haul</td></tr>
+      <tr><td>B07</td><td>Bogwhisper</td><td>II</td><td>Silence croon</td><td>Essence</td></tr>
+      <tr><td>B08</td><td>Verdant Sprawler</td><td>II</td><td>Feed / no fire</td><td>Greenhouse</td></tr>
+      <tr><td>B09</td><td>Ridgespire</td><td>II</td><td>Pride duel</td><td>Mount</td></tr>
+      <tr><td>B10</td><td>Umbracourse</td><td>II</td><td>Night window</td><td>Night caravan</td></tr>
+      <tr><td>B11</td><td>Skyreel Pup</td><td>II</td><td>Cargo puzzle</td><td>Lift</td></tr>
+      <tr><td>B12</td><td>Ashcrown Whelp</td><td>III</td><td>Plate order</td><td>Magma forge</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="story">
+  <h2>Story spine</h2>
+  <div class="grid">
+    <div class="card"><h3>1 Discarded</h3><p class="muted">Wake with fragments. Unlisted.</p></div>
+    <div class="card"><h3>2 Enclave</h3><p class="muted">Beasts + base. Optional memories.</p></div>
+    <div class="card"><h3>3 Fork</h3><p class="muted">Vita or Mortis commitment.</p></div>
+    <div class="card"><h3>4 Heat</h3><p class="muted">Pamphlets → Watchers → Envoys.</p></div>
+    <div class="card"><h3>5 War</h3><p class="muted">Armies. Academies. Council.</p></div>
+    <div class="card"><h3>6 Aftermath</h3><p class="muted">Destroy / rule / reform / unseal.</p></div>
+  </div>
+  <p class="muted">You start as nobody. Origin truths (vessel / bloodline / nobody) are optional peels — not a forced chosen-one rail.</p>
+</section>
+
+<section id="slice">
+  <h2>Vertical slice — First Sealbreak</h2>
+  <div class="two">
+    <div class="card vita">
+      <h3>In</h3>
+      <ul class="tight muted">
+        <li>Thornwake Glade + Blackvein Mire</li>
+        <li>12 beasts, multi-method capture</li>
+        <li>Base automation v1</li>
+        <li>Path fork</li>
+        <li>Co-op 1–4</li>
+        <li>Ashcrown elite</li>
+        <li>Early Heat teaching</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top:3px solid var(--danger)">
+      <h3>Out</h3>
+      <ul class="tight muted">
+        <li>Full Council war</li>
+        <li>Breeding depth</li>
+        <li>100+ dex</li>
+        <li>Megaservers</li>
+        <li>Romance systems</li>
+        <li>Gacha / battle pass core</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="demo">
+  <h2>Demo rules (non-negotiable)</h2>
+  <p>Any public or investor demo must show all three by minute 15:</p>
+  <ol>
+    <li><strong>Bond Ring capture</strong> with a readable Soften key</li>
+    <li><strong>Beast at a station</strong> producing while the player leaves</li>
+    <li><strong>Heat eye / institutional foreshadow</strong> (pamphlet or Watcher)</li>
+  </ol>
+  <p class="muted">Seal Echo zones (anti-magic cells) force beast reliance — a differentiator from pure gun-survival fantasy.</p>
+</section>
+
+<section id="risks">
+  <h2>Kill criteria</h2>
+  <div class="grid">
+    <div class="card"><h3>Skip capture</h3><p class="muted">If pure craft-combat is more fun, capture failed.</p></div>
+    <div class="card"><h3>Co-op worse</h3><p class="muted">If multiplayer hurts the loop, fix net or ship solo-first.</p></div>
+    <div class="card"><h3>Only adjacency</h3><p class="muted">If outsiders only say “HP Palworld,” unique hooks didn’t stick.</p></div>
+  </div>
+  <p style="margin-top:1.5rem" class="muted">Full package lives in the <code>mages/</code> folder: GDD docs 01–30, art, pitch deck, Steam draft, playtest protocol, prototype tickets.</p>
+</section>
+
+</main>
+<footer>
+  Eldermoor Design Bible v0.3 · Original IP · Wonder with teeth
+</footer>
+</body>
+</html>

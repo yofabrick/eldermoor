@@ -1,0 +1,23 @@
+{
+  "version": "0.4",
+  "threats": [
+    { "id": "T01", "name": "Ash Tick Swarm", "class": "vermin", "heatMin": 0, "hp": 30, "behavior": "slow_chase", "counter": "ember" },
+    { "id": "T02", "name": "Night Crawler", "class": "predator", "heatMin": 0, "hp": 80, "behavior": "ambush_dark", "counter": "lumen" },
+    { "id": "T03", "name": "Seal-Moth", "class": "vermin", "heatMin": 0, "hp": 25, "behavior": "mana_drain", "counter": "ward" },
+    { "id": "T04", "name": "Veil Husk", "class": "corrupted", "heatMin": 0, "hp": 110, "behavior": "interruptible_channel", "counter": "ward_pulse" },
+    { "id": "T05", "name": "Warglass Stalker", "class": "corrupted", "heatMin": 0, "hp": 130, "behavior": "reflect_arc_bolt", "counter": "elements" },
+    { "id": "T06", "name": "Scavenger Pair", "class": "humanoid", "heatMin": 0, "hp": 90, "behavior": "kite_flee_loot", "counter": "mobility" },
+    { "id": "T07", "name": "Veil Cult Acolyte", "class": "humanoid", "heatMin": 0, "hp": 100, "behavior": "mortis_flavored", "counter": "interrupt" },
+    { "id": "T08", "name": "Watcher", "class": "institutional", "heatMin": 2, "hp": 60, "behavior": "observe_flee", "counter": "ignore_or_chase_loud" },
+    { "id": "T09", "name": "Pamphleteer Construct", "class": "institutional", "heatMin": 1, "hp": 40, "behavior": "nonlethal_drop", "counter": "none" },
+    { "id": "T10", "name": "Inquisitor Envoy", "class": "institutional", "heatMin": 3, "hp": 220, "behavior": "duel_or_tax", "counter": "skill_or_pay" },
+    { "id": "T11", "name": "Grey-Gold Strike Pair", "class": "institutional", "heatMin": 5, "hp": 180, "behavior": "coordinated_hunter", "counter": "base_defense_prep" },
+    { "id": "T12", "name": "Siege Bell-Tower", "class": "siege", "heatMin": 4, "hp": 400, "behavior": "raid_spawner", "counter": "walls_beasts" }
+  ],
+  "hazards": [
+    { "id": "H01", "name": "Poison Fog", "biome": "BlackveinMire", "counter": "mire_filter" },
+    { "id": "H02", "name": "Mana Storm", "biome": "any", "counter": "wait_or_path_anchors" },
+    { "id": "H03", "name": "Seal Echo", "biome": "ward_scars", "counter": "beasts_mundane" },
+    { "id": "H04", "name": "Night Cold Strain", "biome": "any_night", "counter": "fire_coats_hearthkin" }
+  ]
+}

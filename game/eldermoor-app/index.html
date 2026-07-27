@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Eldermoor — First Sealbreak</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body { width: 100%; height: 100%; overflow: hidden; background: #0b0a12; }
+      #app { width: 100%; height: 100%; position: relative; }
+      canvas { display: block; width: 100%; height: 100%; }
+      #ui {
+        position: absolute; inset: 0; pointer-events: none;
+        font-family: "Segoe UI", system-ui, sans-serif; color: #f4f0e6;
+      }
+      #ui .panel { pointer-events: auto; }
+      #hud-top {
+        position: absolute; top: 12px; left: 12px; right: 12px;
+        display: flex; justify-content: space-between; gap: 12px;
+      }
+      .bar-wrap {
+        background: rgba(22,19,34,.82); border: 1px solid #2e2848;
+        border-radius: 8px; padding: 8px 12px; min-width: 200px;
+        backdrop-filter: blur(6px);
+      }
+      .bar-label { font-size: 11px; color: #a39bb8; margin-bottom: 4px; letter-spacing: .04em; }
+      .bar {
+        height: 10px; background: #1a1528; border-radius: 4px; overflow: hidden; margin-bottom: 4px;
+      }
+      .bar > i { display: block; height: 100%; border-radius: 4px; }
+      .hp > i { background: linear-gradient(90deg, #e85d5d, #c9a227); }
+      .mana > i { background: linear-gradient(90deg, #4a7dff, #a78bfa); }
+      .strain > i { background: linear-gradient(90deg, #666, #e85d5d); }
+      #heat-eye {
+        width: 48px; height: 48px; border-radius: 50%;
+        border: 2px solid #2e2848; background: #161322;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 22px; position: relative;
+      }
+      #heat-eye.open { border-color: #c9a227; box-shadow: 0 0 16px rgba(201,162,39,.45); }
+      #heat-num { position: absolute; bottom: -14px; font-size: 10px; color: #c9a227; width: 100%; text-align: center; }
+      #inv {
+        position: absolute; bottom: 12px; left: 12px;
+        background: rgba(22,19,34,.9); border: 1px solid #2e2848;
+        border-radius: 8px; padding: 10px 12px; font-size: 12px; line-height: 1.45;
+        min-width: 220px; max-width: 280px;
+      }
+      #inv b { color: #c9a227; }
+      #inv .inv-title { color: #e8d48b; font-size: 11px; margin-bottom: 6px; letter-spacing: .03em; }
+      #inv .inv-row { margin: 2px 0; }
+      #inv .inv-row small { color: #7a7394; font-size: 10px; margin-left: 4px; }
+      #inv .inv-hint { margin-top: 8px; font-size: 10px; color: #a39bb8; border-top: 1px solid #2e2848; padding-top: 6px; }
+      #inv .c-wood { color: #c4a574; font-weight: 600; }
+      #inv .c-stone { color: #b0b8c8; font-weight: 600; }
+      #inv .c-herb { color: #6bcb8a; font-weight: 600; }
+      #inv .c-ore { color: #8aa0c8; font-weight: 600; }
+      #party .party-legend { font-size: 10px; margin-bottom: 6px; color: #a39bb8; }
+      #party .party-legend .ally { color: #3dd68c; }
+      #party .party-legend .enemy { color: #e85d5d; }
+      #party .ally-pet { border-color: #3dd68c !important; box-shadow: 0 0 8px rgba(61,214,140,.25); }
+      #party .pet { border: 1px solid #2e2848; }
+      #spells {
+        position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+        display: flex; gap: 8px;
+      }
+      .spell {
+        width: 52px; height: 52px; border-radius: 10px;
+        background: rgba(22,19,34,.9); border: 1px solid #2e2848;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        font-size: 10px; color: #a39bb8;
+      }
+      .spell kbd { color: #e8d48b; font-size: 12px; font-weight: 700; }
+      .spell.active { border-color: #c9a227; color: #f4f0e6; }
+      #toast {
+        position: absolute; top: 22%; left: 50%; transform: translateX(-50%);
+        background: rgba(11,10,18,.92); border: 1px solid #c9a227;
+        padding: 10px 18px; border-radius: 8px; font-size: 14px;
+        opacity: 0; transition: opacity .25s; max-width: 70%; text-align: center;
+        pointer-events: none;
+      }
+      #toast.show { opacity: 1; }
+      #bond-ring {
+        position: absolute; left: 50%; top: 50%;
+        width: 120px; height: 120px; margin: -60px 0 0 -60px;
+        border-radius: 50%; border: 3px solid transparent;
+        display: none; pointer-events: none;
+      }
+      #bond-ring.show {
+        display: block;
+        border-color: #6bcb8a;
+        box-shadow: 0 0 24px rgba(107,203,138,.5), inset 0 0 20px rgba(107,203,138,.15);
+        animation: pulse 1s ease-in-out infinite;
+      }
+      #bond-ring.channel {
+        border-color: #c9a227;
+        box-shadow: 0 0 28px rgba(201,162,39,.6);
+      }
+      @keyframes pulse {
+        0%,100% { transform: scale(1); }
+        50% { transform: scale(1.06); }
+      }
+      #bond-label {
+        position: absolute; left: 50%; top: calc(50% + 70px); transform: translateX(-50%);
+        font-size: 13px; color: #6bcb8a; display: none; text-align: center;
+        text-shadow: 0 1px 4px #000, 0 0 10px #000;
+        background: rgba(11,10,18,.75); padding: 6px 12px; border-radius: 8px;
+        border: 1px solid #2e2848; max-width: 90%;
+      }
+      #bond-label.show { display: block; }
+      #bond-label.focus-dim { color: #c8bfff; border-color: #5544aa; }
+      #bond-label.focus-ready { color: #b8ffd4; border-color: #5dffb0; box-shadow: 0 0 12px rgba(93,255,176,.25); }
+      #prompt {
+        position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%);
+        font-size: 14px; color: #e8d48b; text-shadow: 0 1px 4px #000, 0 0 12px #000;
+        background: rgba(11,10,18,.72); padding: 8px 14px; border-radius: 8px;
+        border: 1px solid #2e2848; max-width: 85%; text-align: center;
+      }
+      #party {
+        position: absolute; bottom: 80px; left: 12px;
+        display: flex; flex-direction: column; gap: 6px;
+      }
+      .pet {
+        background: rgba(22,19,34,.88); border: 1px solid #2e2848;
+        border-radius: 8px; padding: 6px 10px; font-size: 11px; min-width: 160px;
+      }
+      .pet .name { color: #e8d48b; font-weight: 600; }
+      .pet .job { color: #a39bb8; }
+      #menu {
+        position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 6px;
+      }
+      #menu button {
+        pointer-events: auto; cursor: pointer;
+        background: rgba(22,19,34,.9); border: 1px solid #2e2848; color: #f4f0e6;
+        padding: 8px 12px; border-radius: 8px; font-size: 12px;
+      }
+      #menu button:hover { border-color: #c9a227; color: #c9a227; }
+      #title-screen {
+        position: absolute; inset: 0; background:
+          radial-gradient(ellipse at 30% 20%, rgba(201,162,39,.2), transparent 50%),
+          radial-gradient(ellipse at 70% 80%, rgba(167,139,250,.15), transparent 45%),
+          #0b0a12;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        pointer-events: auto; z-index: 20;
+      }
+      #title-screen h1 {
+        font-family: Georgia, serif; font-size: 56px; color: #e8d48b; letter-spacing: .08em;
+        margin-bottom: 8px;
+      }
+      #title-screen .tag {
+        color: #a39bb8; font-style: italic; margin-bottom: 28px; font-size: 16px;
+      }
+      #title-screen button {
+        background: #c9a227; color: #1a1408; border: none; padding: 14px 36px;
+        font-size: 16px; font-weight: 700; border-radius: 8px; cursor: pointer;
+        margin: 6px;
+      }
+      #title-screen button.secondary {
+        background: transparent; color: #e8d48b; border: 1px solid #2e2848;
+      }
+      #title-screen .help {
+        margin-top: 28px; color: #a39bb8; font-size: 12px; line-height: 1.7; text-align: center;
+        max-width: 420px;
+      }
+      #path-modal, #assign-modal {
+        position: absolute; inset: 0; background: rgba(0,0,0,.65);
+        display: none; align-items: center; justify-content: center;
+        pointer-events: auto; z-index: 15;
+      }
+      #path-modal.show, #assign-modal.show { display: flex; }
+      .modal-card {
+        background: #161322; border: 1px solid #2e2848; border-radius: 12px;
+        padding: 24px; max-width: 480px; width: 90%;
+      }
+      .modal-card h2 { font-family: Georgia, serif; color: #e8d48b; margin-bottom: 12px; }
+      .modal-card p { color: #a39bb8; font-size: 13px; margin-bottom: 16px; line-height: 1.5; }
+      .modal-card .row { display: flex; gap: 10px; flex-wrap: wrap; }
+      .modal-card button {
+        flex: 1; min-width: 120px; padding: 12px; border-radius: 8px; border: 1px solid #2e2848;
+        background: #1c1830; color: #f4f0e6; cursor: pointer; font-size: 13px;
+      }
+      .modal-card button.vita { border-color: #6bcb8a; color: #6bcb8a; }
+      .modal-card button.mortis { border-color: #a78bfa; color: #a78bfa; }
+      .modal-card button:hover { filter: brightness(1.1); }
+      #crosshair {
+        position: absolute; left: 50%; top: 50%; width: 8px; height: 8px;
+        margin: -4px 0 0 -4px; border: 1px solid rgba(244,240,230,.5); border-radius: 50%;
+        pointer-events: none;
+      }
+      #journal {
+        position: absolute; top: 70px; right: 12px; width: 260px;
+        background: rgba(22,19,34,.88); border: 1px solid #2e2848; border-radius: 8px;
+        padding: 10px 12px; font-size: 11px; color: #a39bb8; line-height: 1.45;
+        max-height: 160px; overflow: hidden;
+      }
+      #journal b { color: #e8d48b; }
+      #objective-bar {
+        position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+        background: rgba(22,19,34,.9); border: 1px solid #c9a227;
+        border-radius: 8px; padding: 8px 18px; min-width: 220px; max-width: min(520px, 70vw);
+        text-align: center; box-shadow: 0 0 18px rgba(201,162,39,.18);
+        backdrop-filter: blur(6px); pointer-events: none;
+      }
+      #objective-text {
+        display: block; font-size: 12px; color: #e8d48b; font-weight: 600;
+        letter-spacing: .03em; line-height: 1.35;
+      }
+      #compass-hint {
+        display: block; margin-top: 4px; font-size: 11px; color: #c9a227;
+        letter-spacing: .06em; opacity: .95;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="ui">
+        <div id="title-screen">
+          <h1>ELDERMOOR</h1>
+          <div class="tag">The wilderness does not grade you.</div>
+          <div>
+            <button id="btn-start">Enter the Wild Arcana</button>
+            <button id="btn-continue" class="secondary">Continue</button>
+          </div>
+          <div class="help">
+            <b>WASD</b> move · <b>Space</b> dash · <b>Mouse</b> look (click to lock)<br/>
+            <b>E</b> gather / place · <b>F</b> capture · <b>1–4</b> spells · <b>Click/Z</b> cast<br/>
+            <b>Q</b> snare · <b>G</b> fodder · <b>B</b> build · <b>C</b> jobs · <b>X</b> field party · <b>V</b> path<br/>
+            <b>M</b> mount · <b>U</b> wand upgrade · <b>Esc</b> pause/campaign<br/>
+            Heat 50+: Inquisitor Mael · Night raids · SE Ashcrown boss
+          </div>
+        </div>
+
+        <div id="hud-top" style="display:none">
+          <div class="bar-wrap">
+            <div class="bar-label">UNLISTED · VITALS</div>
+            <div class="bar hp"><i id="hp-bar" style="width:100%"></i></div>
+            <div class="bar mana"><i id="mana-bar" style="width:100%"></i></div>
+            <div class="bar strain"><i id="strain-bar" style="width:0%"></i></div>
+          </div>
+          <div id="heat-eye" title="Council Heat">👁<div id="heat-num">0</div></div>
+        </div>
+
+        <div id="objective-bar" style="display:none">
+          <span id="objective-text">Survive. Bind. Build.</span>
+          <span id="compass-hint"></span>
+        </div>
+
+        <div id="journal" style="display:none">
+          <b>Journal</b><br/>
+          <span id="journal-text">Rain that tastes like chalk. Survive. Bind something. Build a roof that is yours.</span>
+        </div>
+
+        <div id="inv" style="display:none"></div>
+        <div id="party" style="display:none"></div>
+        <div id="spells" style="display:none">
+          <div class="spell" data-s="1"><kbd>1</kbd>Bolt</div>
+          <div class="spell" data-s="2"><kbd>2</kbd>Ward</div>
+          <div class="spell" data-s="3"><kbd>3</kbd>Bind</div>
+          <div class="spell" data-s="4"><kbd>4</kbd>Thorn</div>
+        </div>
+        <div id="prompt"></div>
+        <div id="bond-ring"></div>
+        <div id="bond-label"></div>
+        <div id="toast"></div>
+        <div id="crosshair" style="display:none"></div>
+        <div id="menu" style="display:none">
+          <button id="btn-build">Build (B)</button>
+          <button id="btn-save">Save</button>
+          <button id="btn-path">Path Ritual (V)</button>
+        </div>
+
+        <div id="path-modal">
+          <div class="modal-card">
+            <h2>The Amphitheater Remembers</h2>
+            <p>Choose how power enters you. You may mix later — but commitment stains the Arcana.</p>
+            <div class="row">
+              <button class="vita" id="pick-vita">VITA — Life<br/><small>Pacts, growth, lower heat</small></button>
+              <button class="mortis" id="pick-mortis">MORTIS — Death<br/><small>Brands, spikes, higher heat</small></button>
+            </div>
+            <div class="row" style="margin-top:10px">
+              <button id="path-cancel">Not yet</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="assign-modal">
+          <div class="modal-card">
+            <h2>Assign Workforce</h2>
+            <p id="assign-desc">Put a bound beast to work.</p>
+            <div class="row" id="assign-buttons"></div>
+            <div class="row" style="margin-top:10px">
+              <button id="assign-close">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

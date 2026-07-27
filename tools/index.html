@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Eldermoor Tools Hub v0.4</title>
+<style>
+  :root {
+    --bg:#0b0a12; --panel:#161322; --panel2:#1c1830; --gold:#c9a227; --goldsoft:#e8d48b;
+    --text:#f4f0e6; --muted:#a39bb8; --vita:#6bcb8a; --mortis:#a78bfa; --danger:#e85d5d; --line:#2e2848;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Segoe UI,system-ui,sans-serif;background:var(--bg);color:var(--text)}
+  header{padding:2rem 1.5rem;border-bottom:1px solid var(--line);
+    background:radial-gradient(ellipse at 10% 0%,rgba(201,162,39,.18),transparent 45%),var(--bg)}
+  h1{font-family:Georgia,serif;color:var(--goldsoft);margin:0 0 .4rem;font-size:2rem}
+  .sub{color:var(--muted);max-width:40rem}
+  nav{display:flex;flex-wrap:wrap;gap:.5rem;padding:.8rem 1.5rem;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,10,18,.94);z-index:5}
+  nav button{background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:.4rem .8rem;border-radius:999px;cursor:pointer;font-size:.85rem}
+  nav button.active,nav button:hover{color:var(--goldsoft);border-color:var(--gold)}
+  main{max-width:1200px;margin:0 auto;padding:1.5rem}
+  .panel{display:none}
+  .panel.active{display:block}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1rem;cursor:pointer;transition:.15s}
+  .card:hover{border-color:var(--gold)}
+  .card h3{margin:.2rem 0;font-family:Georgia,serif;color:var(--goldsoft);font-size:1.1rem}
+  .meta{font-size:.78rem;color:var(--muted)}
+  .tags span{display:inline-block;background:var(--panel2);border-radius:4px;padding:.1rem .4rem;margin:.15rem .15rem 0 0;font-size:.72rem;color:var(--muted)}
+  .bars{margin-top:.6rem}
+  .bar{display:flex;align-items:center;gap:.4rem;font-size:.72rem;margin:.2rem 0;color:var(--muted)}
+  .bar i{flex:1;height:6px;background:#2a2438;border-radius:3px;overflow:hidden}
+  .bar i b{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--vita))}
+  .detail{display:none;margin-top:1rem;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:1.2rem}
+  .detail.open{display:block}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  @media(max-width:800px){.two{grid-template-columns:1fr}}
+  label{display:block;font-size:.8rem;color:var(--muted);margin:.5rem 0 .2rem}
+  select,input[type=range],input[type=number]{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--text);padding:.45rem;border-radius:6px}
+  .result{font-family:Georgia,serif;font-size:2.4rem;color:var(--goldsoft);margin:.5rem 0}
+  .hint{font-size:.85rem;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:.85rem}
+  th,td{border:1px solid var(--line);padding:.45rem .55rem;text-align:left}
+  th{background:var(--panel2);color:var(--goldsoft)}
+  .vita{color:var(--vita)} .mortis{color:var(--mortis)}
+  .quote{font-family:Georgia,serif;font-style:italic;color:var(--goldsoft);border-left:3px solid var(--gold);padding-left:1rem;margin:1rem 0}
+  a{color:var(--gold)}
+  .links a{display:inline-block;margin:.3rem .6rem .3rem 0}
+  .sim-log{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:.8rem;font-family:ui-monospace,monospace;font-size:.8rem;max-height:220px;overflow:auto;color:var(--muted)}
+  button.cta{background:var(--gold);color:#1a1408;border:none;padding:.55rem 1rem;border-radius:6px;font-weight:600;cursor:pointer;margin-top:.6rem}
+  button.cta:hover{filter:brightness(1.08)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Eldermoor Tools</h1>
+  <p class="sub">v0.4 interactive design desk — Dex, capture math, heat sim, links. Data mirrors <code>data/*.json</code>.</p>
+</header>
+<nav>
+  <button class="active" data-tab="dex">Beast Dex</button>
+  <button data-tab="capture">Capture Calculator</button>
+  <button data-tab="heat">Heat Simulator</button>
+  <button data-tab="loop">Loop Checklist</button>
+  <button data-tab="links">Package Links</button>
+</nav>
+<main>
+  <section id="dex" class="panel active">
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
+      <input id="search" placeholder="Search beasts…" style="flex:1;min-width:180px;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:.5rem .75rem;border-radius:8px" />
+      <select id="filterTier" style="width:auto;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:.5rem;border-radius:8px">
+        <option value="all">All tiers</option>
+        <option value="1">Tier I</option>
+        <option value="2">Tier II</option>
+        <option value="3">Tier III</option>
+      </select>
+      <select id="filterPath" style="width:auto;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:.5rem;border-radius:8px">
+        <option value="all">All paths</option>
+        <option value="N">Neutral</option>
+        <option value="V">Vita-lean</option>
+        <option value="M">Mortis-lean</option>
+      </select>
+    </div>
+    <div class="grid" id="dexGrid"></div>
+    <div class="detail" id="dexDetail"></div>
+  </section>
+
+  <section id="capture" class="panel">
+    <h2 style="font-family:Georgia,serif;color:var(--goldsoft)">Capture chance calculator</h2>
+    <p class="hint">Implements <code>data/capture-math.md</code> — tune live while designing encounters.</p>
+    <div class="two">
+      <div>
+        <label>Beast</label>
+        <select id="capBeast"></select>
+        <label>Method multiplier</label>
+        <input type="number" id="methodMult" value="1.05" step="0.05" min="0.5" max="1.5" />
+        <label>Soften quality <span id="sqLabel">1.00</span></label>
+        <input type="range" id="softenQ" min="0.5" max="1.3" step="0.01" value="1.0" />
+        <label>Tool tier mult</label>
+        <input type="number" id="toolTier" value="1.0" step="0.05" min="0.8" max="1.3" />
+        <label>Path affinity</label>
+        <input type="number" id="pathAff" value="1.0" step="0.05" min="0.7" max="1.3" />
+        <label>Co-op bonus (0–0.25)</label>
+        <input type="number" id="coop" value="0" step="0.05" min="0" max="0.25" />
+        <label>RNG mid (disable variance: 1.0)</label>
+        <input type="number" id="rng" value="1.0" step="0.01" min="0.92" max="1.08" />
+        <button class="cta" id="rollBtn">Roll 20 attempts</button>
+      </div>
+      <div>
+        <div class="hint">Estimated catch chance</div>
+        <div class="result" id="capResult">—</div>
+        <div class="hint" id="capBreakdown"></div>
+        <div class="sim-log" id="rollLog" style="margin-top:1rem"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="heat" class="panel">
+    <h2 style="font-family:Georgia,serif;color:var(--goldsoft)">Council Heat simulator</h2>
+    <p class="hint">Stages: 0 Rumors · 1–24 · 2 Watcher@25 · 3 Envoy@50 · 4 Strike@75 · 5 War@100</p>
+    <div class="two">
+      <div>
+        <label>Current Heat <span id="heatVal">0</span></label>
+        <input type="range" id="heatSlider" min="0" max="120" value="0" />
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.8rem" id="heatBtns"></div>
+        <button class="cta" id="heatReset" style="background:var(--panel2);color:var(--text);border:1px solid var(--line)">Reset</button>
+      </div>
+      <div>
+        <div class="result" id="heatStage">Rumors</div>
+        <div class="hint" id="heatDesc">The Council has not noticed you. Yet.</div>
+        <div class="sim-log" id="heatLog"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="loop" class="panel">
+    <h2 style="font-family:Georgia,serif;color:var(--goldsoft)">Demo Law checklist</h2>
+    <p class="quote">Minute 15 must prove capture skill, beast labor, and institutional heat.</p>
+    <div id="checks"></div>
+    <p class="hint" style="margin-top:1rem">Progress: <strong id="checkPct">0%</strong> — a build is not demo-ready until 100%.</p>
+  </section>
+
+  <section id="links" class="panel">
+    <h2 style="font-family:Georgia,serif;color:var(--goldsoft)">Package</h2>
+    <div class="links">
+      <a href="../pitch/design-bible.html">Design Bible</a>
+      <a href="../pitch/steam-mock.html">Steam Page Mock</a>
+      <a href="../pitch/eldermoor-pitch-deck.pptx">Pitch Deck</a>
+      <a href="../docs/00-gdd-index.md">GDD Index</a>
+      <a href="../docs/MASTER-GDD.md">Master GDD</a>
+      <a href="../data/beasts.json">beasts.json</a>
+      <a href="../narrative/README.md">Narrative Pack</a>
+      <a href="../production/README.md">Production</a>
+    </div>
+    <p class="hint">Tip: serve the folder with a static server if file:// blocks some links. Tools themselves are self-contained.</p>
+  </section>
+</main>
+<script>
+const BEASTS = [{"id":"B01","name":"Glimmerpouch","tier":1,"biome":"ThornwakeGlade","pathSynergy":"N","stats":{"pow":1,"wrk":2,"spd":3,"wil":1,"hp":40,"catchBase":0.55},"workTags":["scavenge","lock_nudge"],"combatTags":["distract","evasion"],"softenKey":"shiny_bait_no_heavy_hit","bestMethods":["bait","snare"],"failLesson":"It wants glitter, not bruises.","fantasy":"Pocket shiny thief; comedy onboarding.","bark":"Mine. Probably."},{"id":"B02","name":"Brushback Boar","tier":1,"biome":"ThornwakeGlade","pathSynergy":"N","stats":{"pow":2,"wrk":3,"spd":2,"wil":2,"hp":90,"catchBase":0.4},"workTags":["lumber_light","haul"],"combatTags":["charge","tanklet"],"softenKey":"hp_mid_break_tusk_after_charge_whiff","bestMethods":["snare"],"failLesson":"Don't stand in the charge line.","fantasy":"First real worker dopamine.","bark":"Hrrn."},{"id":"B03","name":"Lantern Hare","tier":1,"biome":"ThornwakeGlade","pathSynergy":"V","stats":{"pow":1,"wrk":1,"spd":4,"wil":2,"hp":35,"catchBase":0.45},"workTags":["scout","herb_sense"],"combatTags":["flash_escape","vision_aura"],"softenKey":"calm_near_light","bestMethods":["bond","living_snare"],"failLesson":"Dominance scares it into uncatchable flee.","fantasy":"Night safety and scout.","bark":"*chime*"},{"id":"B04","name":"Cinderscale","tier":1,"biome":"ThornwakeGlade","pathSynergy":"N","stats":{"pow":2,"wrk":3,"spd":2,"wil":2,"hp":70,"catchBase":0.38},"workTags":["smelt_assist","cook"],"combatTags":["dot_spit","fire"],"softenKey":"douse_overheat_then_ember_char","bestMethods":["bait","snare"],"failLesson":"Hitting during overheat kills or enrages.","fantasy":"Forge mascot.","bark":"*coal clicks*"},{"id":"B05","name":"Hearthkin","tier":1,"biome":"Ruins","pathSynergy":"N","stats":{"pow":1,"wrk":4,"spd":2,"wil":3,"hp":55,"catchBase":0.35},"workTags":["craft_speed","tidy"],"combatTags":["ward_pulse","support"],"softenKey":"ethics_fork_shrine","bestMethods":["bond","dominance_brand"],"failLesson":"Pure DPS fails; they phase out.","fantasy":"House-spirit labor — wonder plus ethical teeth.","bark":"The hearth remembers."},{"id":"B06","name":"Mirelurk Stag","tier":2,"biome":"BlackveinMire","pathSynergy":"N","stats":{"pow":3,"wrk":3,"spd":2,"wil":3,"hp":140,"catchBase":0.28},"workTags":["haul_heavy","poison_herb"],"combatTags":["antler_crush","toxin"],"softenKey":"break_antler_plate_cleanse_toxin","bestMethods":["barbed_snare","bind_thread"],"failLesson":"Break the plate; cleanse once; then bind.","fantasy":"Mid-slice workhorse.","bark":"*wet bellow*"},{"id":"B07","name":"Bogwhisper","tier":2,"biome":"BlackveinMire","pathSynergy":"M","stats":{"pow":2,"wrk":2,"spd":2,"wil":4,"hp":100,"catchBase":0.25},"workTags":["essence_still","corpse_scent"],"combatTags":["fear","dot_moan"],"softenKey":"silence_croon","bestMethods":["dominance_brand","bond_after_cleanse_quest"],"failLesson":"Silence the croon before you commit.","fantasy":"Mortis poster child.","bark":"*wet choir*"},{"id":"B08","name":"Verdant Sprawler","tier":2,"biome":"ThornwakeDeep","pathSynergy":"V","stats":{"pow":2,"wrk":4,"spd":1,"wil":3,"hp":160,"catchBase":0.3},"workTags":["greenhouse","living_wall"],"combatTags":["root_snare","slow_tank"],"softenKey":"feed_growth_no_fire","bestMethods":["living_snare","bond"],"failLesson":"Never burn what you want to bind.","fantasy":"Vita base identity.","bark":"*leaf whisper*"},{"id":"B09","name":"Ridgespire Juvenile","tier":2,"biome":"Cliffs","pathSynergy":"N","stats":{"pow":3,"wrk":1,"spd":4,"wil":4,"hp":130,"catchBase":0.22},"workTags":["mount"],"combatTags":["dive_rake","aerial"],"softenKey":"pride_duel_three_clean_hits","bestMethods":["bond"],"failLesson":"It won't serve the unworthy.","fantasy":"First true mount.","bark":"*respect skree*"},{"id":"B10","name":"Umbracourse Foal","tier":2,"biome":"NightRoads","pathSynergy":"M","stats":{"pow":3,"wrk":1,"spd":5,"wil":4,"hp":120,"catchBase":0.2},"workTags":["night_caravan"],"combatTags":["fear_aura","night_bonus"],"softenKey":"night_only_careful_lumen","bestMethods":["dominance_brand","quiet_bond"],"failLesson":"Too much light and it is gone.","fantasy":"Night travel king.","bark":"*cloth hooves*"},{"id":"B11","name":"Skyreel Pup","tier":2,"biome":"SkyRuinEdge","pathSynergy":"N","stats":{"pow":2,"wrk":3,"spd":3,"wil":3,"hp":85,"catchBase":0.32},"workTags":["cargo_lift"],"combatTags":["static_discharge"],"softenKey":"cargo_weight_puzzle","bestMethods":["bait","bond"],"failLesson":"Feed the platform, not only the beast.","fantasy":"Logistics cuteness.","bark":"*electric purr*"},{"id":"B12","name":"Ashcrown Whelp","tier":3,"biome":"EliteDen","pathSynergy":"N","stats":{"pow":4,"wrk":2,"spd":3,"wil":5,"hp":280,"catchBase":0.12},"workTags":["magma_forge"],"combatTags":["breath_cone","wing_buffet"],"softenKey":"break_plates_in_order_no_enrage","bestMethods":["ley_snare","pact_ritual"],"failLesson":"Order the plates. Don't feed the crown's rage.","fantasy":"Slice boss-adjacent dragonlet.","bark":"*crown crackle*"}];
+
+const HEAT_ACTIONS = [
+  {action:"Build tower module",heat:8},
+  {action:"Public Mortis rite",heat:12},
+  {action:"Bind elite",heat:10},
+  {action:"Kill Watcher",heat:15},
+  {action:"Kill Envoy",heat:25},
+  {action:"Low profile day",heat:-2},
+  {action:"Pay tax",heat:-8}
+];
+
+// Tabs
+document.querySelectorAll('nav button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+function bar(n){return `<i><b style="width:${(n/5)*100}%"></b></i>`}
+function pathLabel(p){return p==='V'?'<span class="vita">Vita</span>':p==='M'?'<span class="mortis">Mortis</span>':'Neutral'}
+
+function renderDex(){
+  const q = document.getElementById('search').value.toLowerCase();
+  const t = document.getElementById('filterTier').value;
+  const p = document.getElementById('filterPath').value;
+  const grid = document.getElementById('dexGrid');
+  grid.innerHTML = '';
+  BEASTS.filter(b=>{
+    if(t!=='all' && String(b.tier)!==t) return false;
+    if(p!=='all' && b.pathSynergy!==p) return false;
+    if(q && !(`${b.name} ${b.fantasy} ${b.softenKey} ${b.workTags.join(' ')}`.toLowerCase().includes(q))) return false;
+    return true;
+  }).forEach(b=>{
+    const el = document.createElement('div');
+    el.className='card';
+    el.innerHTML = `<div class="meta">${b.id} · Tier ${b.tier} · ${pathLabel(b.pathSynergy)}</div>
+      <h3>${b.name}</h3>
+      <p class="meta">${b.fantasy}</p>
+      <div class="tags">${b.workTags.map(t=>`<span>${t}</span>`).join('')}</div>
+      <div class="bars">
+        <div class="bar">POW ${bar(b.stats.pow)}</div>
+        <div class="bar">WRK ${bar(b.stats.wrk)}</div>
+        <div class="bar">SPD ${bar(b.stats.spd)}</div>
+        <div class="bar">WIL ${bar(b.stats.wil)}</div>
+      </div>`;
+    el.onclick=()=>showDetail(b);
+    grid.appendChild(el);
+  });
+}
+function showDetail(b){
+  const d=document.getElementById('dexDetail');
+  d.classList.add('open');
+  d.innerHTML=`<h3 style="font-family:Georgia,serif;color:var(--goldsoft);margin-top:0">${b.name}</h3>
+    <p><strong>Soften key:</strong> <code>${b.softenKey}</code></p>
+    <p><strong>Best methods:</strong> ${b.bestMethods.join(', ')}</p>
+    <p><strong>Fail lesson:</strong> ${b.failLesson}</p>
+    <p><strong>Combat:</strong> ${b.combatTags.join(', ')}</p>
+    <p><strong>Bark:</strong> <em>${b.bark}</em></p>
+    <p class="meta">catchBase ${(b.stats.catchBase*100).toFixed(0)}% · HP ${b.stats.hp} · ${b.biome}</p>`;
+  d.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+document.getElementById('search').oninput=renderDex;
+document.getElementById('filterTier').onchange=renderDex;
+document.getElementById('filterPath').onchange=renderDex;
+renderDex();
+
+// Capture calc
+const capSel=document.getElementById('capBeast');
+BEASTS.forEach(b=>{
+  const o=document.createElement('option');
+  o.value=b.id; o.textContent=`${b.id} ${b.name} (base ${(b.stats.catchBase*100).toFixed(0)}%, WIL ${b.stats.wil})`;
+  capSel.appendChild(o);
+});
+function calcCatch(){
+  const b=BEASTS.find(x=>x.id===capSel.value);
+  const methodMult=+document.getElementById('methodMult').value;
+  const softenQ=+document.getElementById('softenQ').value;
+  const toolTier=+document.getElementById('toolTier').value;
+  const pathAff=+document.getElementById('pathAff').value;
+  const coop=+document.getElementById('coop').value;
+  const rng=+document.getElementById('rng').value;
+  document.getElementById('sqLabel').textContent=softenQ.toFixed(2);
+  const wilEffective=(b.stats.wil/5)*1; // simplified
+  let chance=b.stats.catchBase*methodMult*softenQ*(1-wilEffective*0.65)*toolTier*pathAff*(1+coop)*rng;
+  chance=Math.max(0.02,Math.min(0.92,chance));
+  document.getElementById('capResult').textContent=(chance*100).toFixed(1)+'%';
+  document.getElementById('capBreakdown').textContent=
+    `base ${b.stats.catchBase} × method ${methodMult} × soften ${softenQ} × (1-wilEff*0.65=${(1-wilEffective*0.65).toFixed(2)}) × tool ${toolTier} × path ${pathAff} × coop ${(1+coop).toFixed(2)} × rng ${rng}`;
+  return chance;
+}
+['capBeast','methodMult','softenQ','toolTier','pathAff','coop','rng'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',calcCatch);
+});
+calcCatch();
+document.getElementById('rollBtn').onclick=()=>{
+  const p=calcCatch();
+  let hits=0;
+  const lines=[];
+  for(let i=1;i<=20;i++){
+    const r=Math.random();
+    const ok=r<p;
+    if(ok) hits++;
+    lines.push(`#${String(i).padStart(2,'0')} roll ${r.toFixed(3)} → ${ok?'CATCH':'fail'}`);
+  }
+  document.getElementById('rollLog').textContent=`${hits}/20 catches at p=${(p*100).toFixed(1)}%\n`+lines.join('\n');
+};
+
+// Heat
+let heat=0;
+const heatLog=[];
+function heatStage(h){
+  if(h>=100) return ['War','Expedition armies. Plan the institutional clash.'];
+  if(h>=75) return ['Strike teams','Grey-gold hunters enter your routes.'];
+  if(h>=50) return ['Envoy','Tax, duel, or make them expensive.'];
+  if(h>=25) return ['Watchers','Silhouettes on the ridge. You are Unlisted no more.'];
+  if(h>=1) return ['Rumors','Pamphlets. Constructs. Quiet notes in academy brass.'];
+  return ['Invisible','The Council has not noticed you. Yet.'];
+}
+function renderHeat(){
+  document.getElementById('heatSlider').value=heat;
+  document.getElementById('heatVal').textContent=heat;
+  const [s,d]=heatStage(heat);
+  document.getElementById('heatStage').textContent=s;
+  document.getElementById('heatDesc').textContent=d;
+  document.getElementById('heatLog').textContent=heatLog.slice(-12).join('\n')||'No actions yet.';
+}
+const hb=document.getElementById('heatBtns');
+HEAT_ACTIONS.forEach(a=>{
+  const b=document.createElement('button');
+  b.className='cta';
+  b.style.background=a.heat>0?'var(--panel2)':'#1a2a1f';
+  b.style.color='var(--text)';
+  b.style.border='1px solid var(--line)';
+  b.style.fontSize='.78rem';
+  b.textContent=`${a.action} (${a.heat>0?'+':''}${a.heat})`;
+  b.onclick=()=>{heat=Math.max(0,heat+a.heat); heatLog.push(`${a.action} → heat ${heat}`); renderHeat();};
+  hb.appendChild(b);
+});
+document.getElementById('heatSlider').oninput=e=>{heat=+e.target.value; renderHeat();};
+document.getElementById('heatReset').onclick=()=>{heat=0;heatLog.length=0;renderHeat();};
+renderHeat();
+
+// Demo checklist
+const items=[
+  'Bond Ring appears only when Soften key is valid',
+  'At least two capture methods feel different',
+  'Beast assigned to lumber produces while player is away',
+  'Workforce shows name + job + mood',
+  'Heat pip visible on HUD',
+  'Pamphlet or Watcher event can fire',
+  'Death is recoverable without progress wipe',
+  'Co-op join (or stub) does not crash capture FSM'
+];
+const box=document.getElementById('checks');
+const state=JSON.parse(localStorage.getItem('em_demo_checks')||'{}');
+function pct(){
+  const n=items.filter((_,i)=>state[i]).length;
+  document.getElementById('checkPct').textContent=Math.round(n/items.length*100)+'%';
+}
+items.forEach((t,i)=>{
+  const row=document.createElement('label');
+  row.style.display='flex'; row.style.gap='.6rem'; row.style.alignItems='flex-start';
+  row.style.background='var(--panel)'; row.style.border='1px solid var(--line)';
+  row.style.borderRadius='8px'; row.style.padding='.7rem .9rem'; row.style.margin='.4rem 0';
+  row.innerHTML=`<input type="checkbox" ${state[i]?'checked':''} style="margin-top:.2rem" /> <span>${t}</span>`;
+  row.querySelector('input').onchange=e=>{state[i]=e.target.checked; localStorage.setItem('em_demo_checks',JSON.stringify(state)); pct();};
+  box.appendChild(row);
+});
+pct();
+</script>
+</body>
+</html>
