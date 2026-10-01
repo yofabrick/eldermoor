@@ -18,6 +18,8 @@ export class BindChannelBar {
   private holding = false;
   private beastName = '';
   private pulseT = 0;
+  private chanceEl: HTMLElement | null = null;
+  private chancePct = 0;
 
   constructor() {
     let el = document.getElementById('bind-channel-bar') as HTMLDivElement | null;
@@ -30,13 +32,18 @@ export class BindChannelBar {
             <span class="bcb-tag">GLIMMER-BIND</span>
             <span class="bcb-sep">·</span>
             <span class="bcb-name"></span>
+            <span class="bcb-hint">violett=warten · grün=bereit · gold=F halten</span>
           </div>
           <div class="bcb-track">
             <div class="bcb-fill"></div>
             <div class="bcb-glow"></div>
           </div>
+          <div class="bcb-chance-row">
+            <span class="bcb-chance-label">Griff</span>
+            <span class="bcb-chance-pips"><i></i><i></i><i></i><i></i><i></i></span>
+          </div>
           <div class="bcb-meta">
-            <span class="bcb-hold">F HALTEN!</span>
+            <span class="bcb-hold">F HALTEN bis 100%!</span>
             <span class="bcb-pct">0%</span>
           </div>
         </div>
@@ -97,10 +104,24 @@ export class BindChannelBar {
           font-size: 12px;
           font-weight: 600;
           letter-spacing: 0.08em;
-          max-width: 55%;
+          max-width: 40%;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+        }
+        #bind-channel-bar .bcb-hint {
+          display: block;
+          width: 100%;
+          text-align: center;
+          color: #8a8498;
+          font-size: 9px;
+          letter-spacing: 0.04em;
+          text-transform: none;
+          margin-top: 4px;
+          font-weight: 500;
+        }
+        #bind-channel-bar .bcb-title {
+          flex-wrap: wrap;
         }
         #bind-channel-bar .bcb-track {
           position: relative;
@@ -170,6 +191,44 @@ export class BindChannelBar {
         #bind-channel-bar:not(.holding) .bcb-track {
           border-color: rgba(200, 80, 80, 0.45);
         }
+        #bind-channel-bar .bcb-chance-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin: 6px 0 4px;
+          font-size: 13px;
+          font-weight: 700;
+        }
+        #bind-channel-bar .bcb-chance-label {
+          color: #a39bb8;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          font-size: 10px;
+        }
+        #bind-channel-bar .bcb-chance-pips {
+          display: flex; gap: 4px;
+        }
+        #bind-channel-bar .bcb-chance-pips i {
+          width: 14px; height: 8px; border-radius: 2px;
+          background: rgba(40,36,55,0.9);
+          border: 1px solid rgba(255,255,255,0.15);
+          display: block;
+        }
+        #bind-channel-bar .bcb-chance-pips i.on {
+          background: #3dff9a;
+          border-color: #7dffb0;
+          box-shadow: 0 0 8px rgba(61,255,154,0.5);
+        }
+        #bind-channel-bar .bcb-chance-pips.risk i.on {
+          background: #ffc070;
+          border-color: #ffd090;
+          box-shadow: 0 0 8px rgba(255,192,112,0.45);
+        }
+        #bind-channel-bar .bcb-chance-pips.hard i.on {
+          background: #ff6b6b;
+          border-color: #ff8a8a;
+          box-shadow: 0 0 8px rgba(255,107,107,0.45);
+        }
         #bind-channel-bar .bcb-meta {
           display: flex;
           justify-content: space-between;
@@ -213,6 +272,7 @@ export class BindChannelBar {
     this.fillEl = el.querySelector('.bcb-fill')!;
     this.holdEl = el.querySelector('.bcb-hold')!;
     this.pctEl = el.querySelector('.bcb-pct')!;
+    this.chanceEl = el.querySelector('.bcb-chance-pips');
   }
 
   setVisible(v: boolean): void {
@@ -229,14 +289,16 @@ export class BindChannelBar {
    * @param progress 0..1 channel fill
    * @param beastName target name for label
    * @param holding whether F is held
+   * @param catchChance 0..1 bind success probability (shown big)
    */
-  setProgress(progress: number, beastName: string, holding: boolean): void {
+  setProgress(progress: number, beastName: string, holding: boolean, catchChance = 0): void {
     this.targetProgress = Math.max(0, Math.min(1, progress));
+    this.chancePct = Math.max(0, Math.min(1, catchChance));
     this.beastName = beastName;
     this.holding = holding;
     this.titleEl.textContent = beastName;
     this.root.classList.toggle('holding', holding);
-    this.holdEl.textContent = 'F HALTEN!';
+    this.holdEl.textContent = 'F HALTEN bis 100%!';
   }
 
   update(dt: number): void {
@@ -271,7 +333,15 @@ export class BindChannelBar {
     }
     const pct = Math.round(this.displayProgress * 100);
     this.fillEl.style.width = `${this.displayProgress * 100}%`;
-    this.pctEl.textContent = `${pct}%`;
+    this.pctEl.textContent = `Kanal ${pct}%`;
+
+    // Visual grip strength (pips) — no percentage text
+    if (this.chanceEl) {
+      const lit = Math.max(1, Math.round(this.chancePct * 5));
+      this.chanceEl.classList.toggle('risk', this.chancePct < 0.55 && this.chancePct >= 0.35);
+      this.chanceEl.classList.toggle('hard', this.chancePct < 0.35);
+      [...this.chanceEl.children].forEach((c, i) => c.classList.toggle('on', i < lit));
+    }
 
     // Red pulse when not holding
     this.pulseT += dt;

@@ -22,7 +22,7 @@ export interface Milestone {
 
 export class Campaign {
   milestones: Milestone[] = [
-    { id: 'gather', title: 'Holz sammeln (E an braunen Stämmen)', done: false },
+    { id: 'gather', title: 'Holz sammeln (über braune Stämme laufen)', done: false },
     { id: 'first_bind', title: 'Erste Bestie fangen (Bond-Ring + F)', done: false, reward: '+2 Fallen' },
     { id: 'lumber', title: 'Sägeplatz bauen + Arbeiter (C)', done: false, reward: '+5 Holz' },
     { id: 'field', title: 'Begleiter ins Feld (X) — grüner Balken', done: false },
@@ -49,13 +49,13 @@ export class Campaign {
     const m = this.milestones.find((x) => x.id === id);
     if (!m || m.done) return null;
     m.done = true;
-    const reward = m.reward ? ` Reward: ${m.reward}` : '';
-    return { toast: `◆ Milestone: ${m.title}.${reward}`, rewardId: id };
+    const reward = m.reward ? ` Belohnung: ${m.reward}` : '';
+    return { toast: `◆ Meilenstein: ${m.title}.${reward}`, rewardId: id };
   }
 
   nextObjective(): string {
     const n = this.milestones.find((m) => !m.done);
-    return n ? n.title : 'Enclave secure — explore freely.';
+    return n ? n.title : 'Enklave sicher — frei erkunden.';
   }
 
   progress(): string {

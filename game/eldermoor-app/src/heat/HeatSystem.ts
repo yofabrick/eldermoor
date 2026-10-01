@@ -1,19 +1,19 @@
 /** Notoriety / heat stages (mirrors HUD eye labels). */
 export const HEAT_STAGES = [
-  { threshold: 0, name: 'Rumors' },
-  { threshold: 25, name: 'Watchers' },
-  { threshold: 50, name: 'Envoy' },
-  { threshold: 75, name: 'Strike' },
-  { threshold: 100, name: 'War' },
+  { threshold: 0, name: 'Gerüchte' },
+  { threshold: 25, name: 'Beobachter' },
+  { threshold: 50, name: 'Gesandter' },
+  { threshold: 75, name: 'Schlagtrupp' },
+  { threshold: 100, name: 'Krieg' },
 ] as const;
 
 export type HeatStageName = (typeof HEAT_STAGES)[number]['name'];
 
 const STAGE_TOASTS: { threshold: number; toast: string }[] = [
-  { threshold: 25, toast: 'Heat rises — Watchers take notice…' },
-  { threshold: 50, toast: 'An Envoy has been dispatched.' },
-  { threshold: 75, toast: 'Strike teams are moving on your trail.' },
-  { threshold: 100, toast: 'War has been declared on Eldermoor.' },
+  { threshold: 25, toast: 'Heat steigt — Beobachter des Rates bemerken dich…' },
+  { threshold: 50, toast: 'Ein Gesandter ist unterwegs.' },
+  { threshold: 75, toast: 'Schlagtrupps jagen deine Spur.' },
+  { threshold: 100, toast: 'Krieg um Eldermoor ist erklärt.' },
 ];
 
 export class HeatSystem {
@@ -29,7 +29,7 @@ export class HeatSystem {
 
   /** Current stage label for the given (or current) heat value. */
   stageName(value = this.heat): HeatStageName {
-    let name: HeatStageName = 'Rumors';
+    let name: HeatStageName = 'Gerüchte';
     for (const s of HEAT_STAGES) {
       if (value >= s.threshold) name = s.name;
     }
@@ -62,6 +62,11 @@ export class HeatSystem {
     return this.add(10, 'elite_bind');
   }
 
+  /** First successful bind — heat ramp so pamphlet lands in opening minutes */
+  onFirstBind(): string | null {
+    return this.add(5, 'first_bind');
+  }
+
   onKill(): string | null {
     return this.add(5, 'kill');
   }
@@ -72,5 +77,14 @@ export class HeatSystem {
 
   onPathVita(): string | null {
     return this.add(2, 'path_vita');
+  }
+
+  /** First permanent station / lumber — demo heat ramp so Watchers are reachable. */
+  onFirstBase(): string | null {
+    return this.add(6, 'first_base');
+  }
+
+  onFirstWorker(): string | null {
+    return this.add(5, 'first_worker');
   }
 }

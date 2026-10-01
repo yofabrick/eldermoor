@@ -98,7 +98,7 @@ export class ResourceLabels {
     ctx.fillText(info.de.toUpperCase(), 128, 30);
     ctx.fillStyle = '#a39bb8';
     ctx.font = '14px Segoe UI, Arial, sans-serif';
-    ctx.fillText('Halte E', 128, 48);
+    ctx.fillText('Drüberlaufen', 128, 48);
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;

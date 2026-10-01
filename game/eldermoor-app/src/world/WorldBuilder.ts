@@ -30,6 +30,8 @@ export interface WorldBuildResult {
   amphitheaterPos: THREE.Vector3;
   spawnPos: THREE.Vector3;
   bounds: number;
+  /** Discarding Stones center — first camp landmark */
+  stonesCenter: THREE.Vector3;
 }
 
 export class WorldBuilder {
@@ -37,18 +39,19 @@ export class WorldBuilder {
     const bounds = 85;
     const rng = mulberry32(42);
 
-    scene.background = new THREE.Color(0x0b0a12);
-    scene.fog = new THREE.Fog(0x0b0a12, 40, 120);
+    // Bright fantasy sky (DayNight will keep tuning this)
+    scene.background = new THREE.Color(0xc5d6e8);
+    scene.fog = new THREE.Fog(0xb8c8d8, 65, 170);
 
-    // Soft sky + fill
-    const hemi = new THREE.HemisphereLight(0xc9d6e8, 0x2a3a28, 0.55);
+    // Soft sky + ground bounce — strong fill so nothing reads as black pits
+    const hemi = new THREE.HemisphereLight(0xe8f0ff, 0x5a7a48, 1.05);
     hemi.name = 'hemi';
     scene.add(hemi);
 
-    // Moonlight / sun
-    const sun = new THREE.DirectionalLight(0xfff0d0, 0.85);
+    // Key sunlight
+    const sun = new THREE.DirectionalLight(0xfff4dc, 1.65);
     sun.name = 'sun';
-    sun.position.set(40, 70, 20);
+    sun.position.set(45, 80, 30);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     sun.shadow.camera.near = 1;
@@ -60,31 +63,53 @@ export class WorldBuilder {
     sun.shadow.bias = -0.0002;
     scene.add(sun);
 
-    // Dim ambient fill so night is never pure black without DayNight
-    const amb = new THREE.AmbientLight(0x1a1830, 0.25);
+    // Fill ambient — kept high so materials stay readable
+    const amb = new THREE.AmbientLight(0xd0d8e8, 0.65);
     amb.name = 'ambient';
     scene.add(amb);
 
-    // --- Ground: large grass plane with vertex-color variation ---
+    // --- Ground: ONE material — camp warmth baked into vertex colors (no sticker layers) ---
     const groundSize = 180;
-    const groundGeo = new THREE.PlaneGeometry(groundSize, groundSize, 48, 48);
+    const groundGeo = new THREE.PlaneGeometry(groundSize, groundSize, 64, 64);
     groundGeo.rotateX(-Math.PI / 2);
     const pos = groundGeo.attributes.position;
     const colors = new Float32Array(pos.count * 3);
     const base = new THREE.Color(0x3d5c3a);
     const gold = new THREE.Color(0x6a7a3a);
     const dark = new THREE.Color(0x2f4a2e);
+    const campWarm = new THREE.Color(0x7a8a42); // cozy glade
+    const campDirt = new THREE.Color(0x8a7348); // path dirt
+    const campCenter = new THREE.Color(0x6a5a38); // hearth earth
     const tmp = new THREE.Color();
+    const stonesCx = 6;
+    const stonesCz = -4;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
       const z = pos.getZ(i);
       // Gentle height noise for soft rolling glade
-      const h =
+      let h =
         Math.sin(x * 0.04) * Math.cos(z * 0.035) * 0.35 +
         Math.sin(x * 0.12 + z * 0.08) * 0.12;
+      // Slight depression at camp hearth (reads as worn path)
+      const campDist = Math.hypot(x - stonesCx, z - stonesCz);
+      if (campDist < 14) h *= 0.55 + (campDist / 14) * 0.45;
       pos.setY(i, h);
       const t = (Math.sin(x * 0.08) * Math.cos(z * 0.07) + 1) * 0.5;
       tmp.copy(base).lerp(gold, t * 0.55).lerp(dark, (1 - t) * 0.25);
+      // Unified camp zone: warm glade + dirt ring + hearth — baked, not overlays
+      // Fire pit at local offset (−1.2, 1.0) from stones center in world = (4.8, −3)
+      const fireDist = Math.hypot(x - (stonesCx - 1.2), z - (stonesCz + 1.0));
+      if (fireDist < 2.4) {
+        // Scorch / warm hearth under fire (strongest pull)
+        tmp.lerp(new THREE.Color(0x5a3a1a), 1 - fireDist / 2.4);
+      } else if (campDist < 3.2) {
+        tmp.lerp(campCenter, 1 - campDist / 3.2);
+      } else if (campDist < 8.5) {
+        const dirtAmt = 1 - Math.abs(campDist - 5.5) / 3.5;
+        tmp.lerp(campDirt, Math.max(0, dirtAmt) * 0.75);
+      } else if (campDist < 16) {
+        tmp.lerp(campWarm, (1 - (campDist - 8.5) / 7.5) * 0.65);
+      }
       // Slight radial darkening toward bounds edge
       const dist = Math.hypot(x, z) / (groundSize * 0.5);
       if (dist > 0.7) tmp.lerp(new THREE.Color(0x1a2218), (dist - 0.7) * 0.8);
@@ -108,21 +133,6 @@ export class WorldBuilder {
     ground.name = 'ground';
     ground.receiveShadow = true;
     scene.add(ground);
-
-    // Secondary soft gold patch under landmarks
-    const patchGeo = new THREE.CircleGeometry(14, 24);
-    patchGeo.rotateX(-Math.PI / 2);
-    const patch = new THREE.Mesh(
-      patchGeo,
-      new THREE.MeshStandardMaterial({
-        color: 0x5a6b32,
-        roughness: 0.95,
-        transparent: true,
-        opacity: 0.55,
-      }),
-    );
-    patch.position.set(6, 0.06, -4);
-    scene.add(patch);
 
     // Shared procedural maps for flora / stone props
     const barkMap = makeBarkTexture(128);
@@ -193,54 +203,238 @@ export class WorldBuilder {
       bushesPlaced++;
     }
 
-    // --- Discarding Stones: 3 tall standing stones in a circle ---
+    // --- Discarding Stones: 3 tall standing stones (wake / Unlisted landmark) ---
     const stonesCenter = new THREE.Vector3(6, 0, -4);
     const stoneGroup = new THREE.Group();
     stoneGroup.name = 'discardingStones';
     const stoneBodyMat = new THREE.MeshStandardMaterial({
-      color: 0x5c5a62,
-      roughness: 0.75,
-      metalness: 0.08,
+      color: 0x6a6872,
+      map: stoneMap,
+      roughness: 0.72,
+      metalness: 0.1,
       flatShading: true,
     });
     const goldRimMat = new THREE.MeshStandardMaterial({
       color: 0xc9a227,
       emissive: 0xffc040,
-      emissiveIntensity: 0.55,
-      roughness: 0.4,
-      metalness: 0.35,
+      emissiveIntensity: 0.75,
+      roughness: 0.35,
+      metalness: 0.4,
     });
 
-    for (let i = 0; i < 3; i++) {
-      const a = (i / 3) * Math.PI * 2 - Math.PI / 6;
-      const r = 3.2;
-      const height = 3.2 + i * 0.35;
+    // Asymmetric triad: tapered monoliths (not boxes) — silhouette at 20m without sprite
+    const stoneSpecs = [
+      { a: -Math.PI / 6, r: 3.0, h: 6.0, lean: 0.1, rTop: 0.28, rBot: 0.55 },
+      { a: (-Math.PI / 6) + (Math.PI * 2) / 3, r: 3.4, h: 4.4, lean: -0.08, rTop: 0.22, rBot: 0.42 },
+      { a: (-Math.PI / 6) + (Math.PI * 4) / 3, r: 3.1, h: 7.0, lean: 0.14, rTop: 0.32, rBot: 0.62 },
+    ];
+    for (let i = 0; i < stoneSpecs.length; i++) {
+      const s = stoneSpecs[i];
+      // Tapered stone column — reads as menhir, not crate
       const body = new THREE.Mesh(
-        new THREE.BoxGeometry(0.9, height, 0.45),
+        new THREE.CylinderGeometry(s.rTop, s.rBot, s.h, 7),
         stoneBodyMat,
       );
-      body.position.set(Math.cos(a) * r, height * 0.5, Math.sin(a) * r);
-      body.lookAt(0, height * 0.5, 0);
-      body.rotateY(Math.PI / 2);
+      body.position.set(Math.cos(s.a) * s.r, s.h * 0.5, Math.sin(s.a) * s.r);
+      body.rotation.z = s.lean;
+      body.rotation.y = s.a + Math.PI / 2;
+      body.castShadow = true;
+      body.receiveShadow = true;
 
-      // Gold emissive rim strip along the inner face
-      const rim = new THREE.Mesh(new THREE.BoxGeometry(0.12, height * 0.85, 0.08), goldRimMat);
-      rim.position.copy(body.position);
-      rim.position.y = height * 0.5;
-      // Nudge rim slightly toward center
-      rim.position.x *= 0.88;
-      rim.position.z *= 0.88;
-      rim.quaternion.copy(body.quaternion);
+      // Inset gold rune plate on body (mass first, jewelry second — not torus gizmo)
+      const rune = new THREE.Mesh(
+        new THREE.BoxGeometry(s.rBot * 1.1, s.h * 0.22, 0.08),
+        goldRimMat,
+      );
+      rune.position.set(
+        Math.cos(s.a) * s.r * 0.92,
+        s.h * 0.5,
+        Math.sin(s.a) * s.r * 0.92,
+      );
+      rune.lookAt(0, s.h * 0.5, 0);
+      rune.castShadow = true;
 
-      stoneGroup.add(body, rim);
+      // Stone cap mass (stone first) + small gold tip gem
+      const capStone = new THREE.Mesh(
+        new THREE.SphereGeometry(s.rTop * 1.15, 6, 5),
+        stoneBodyMat,
+      );
+      capStone.position.set(Math.cos(s.a) * s.r, s.h + 0.15, Math.sin(s.a) * s.r);
+      capStone.castShadow = true;
+      const capGem = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.18 + i * 0.04, 0),
+        goldRimMat,
+      );
+      capGem.position.set(
+        Math.cos(s.a) * s.r,
+        s.h + 0.45 + Math.abs(s.lean) * 0.3,
+        Math.sin(s.a) * s.r,
+      );
+
+      // Broken lintel between tallest stones
+      if (i === 0) {
+        const lintel = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.2, 0.26, 2.8, 6),
+          stoneBodyMat,
+        );
+        lintel.rotation.z = Math.PI / 2 - 0.2;
+        lintel.position.set(0.3, 5.5, -0.5);
+        lintel.castShadow = true;
+        stoneGroup.add(lintel);
+      }
+
+      stoneGroup.add(body, rune, capStone, capGem);
     }
-    // Small pedestal disk
-    const ped = new THREE.Mesh(
-      new THREE.CylinderGeometry(2.4, 2.6, 0.25, 10),
-      new THREE.MeshStandardMaterial({ color: 0x4a4a50, roughness: 0.9, flatShading: true }),
+    // Central stone needle — pure stone mass + small gold tip only
+    const needle = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.16, 0.52, 7.2, 8),
+      stoneBodyMat,
     );
-    ped.position.y = 0.12;
-    stoneGroup.add(ped);
+    needle.position.y = 3.7;
+    needle.castShadow = true;
+    const needleTip = new THREE.Mesh(
+      new THREE.ConeGeometry(0.34, 1.5, 8),
+      stoneBodyMat,
+    );
+    needleTip.position.y = 8.0;
+    needleTip.castShadow = true;
+    const tipGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0), goldRimMat);
+    tipGem.position.y = 8.7;
+    stoneGroup.add(needle, needleTip, tipGem);
+
+    // Camp fire — volume layers (no translucent scorch disk; ground bake handles hearth)
+    const fireX = -1.2;
+    const fireZ = 1.0;
+    const fireBase = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.55, 0.7, 0.22, 8),
+      new THREE.MeshStandardMaterial({ color: 0x2a2018, roughness: 0.95, flatShading: true }),
+    );
+    fireBase.position.set(fireX, 0.12, fireZ);
+    // Log ring (mass)
+    for (let li = 0; li < 5; li++) {
+      const a = (li / 5) * Math.PI * 2;
+      const log = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.09, 0.12, 0.75, 6),
+        new THREE.MeshStandardMaterial({ color: 0x4a3424, map: barkMap, roughness: 0.92 }),
+      );
+      log.rotation.z = Math.PI / 2;
+      log.rotation.y = a;
+      log.position.set(fireX + Math.cos(a) * 0.4, 0.2, fireZ + Math.sin(a) * 0.4);
+      log.castShadow = true;
+      stoneGroup.add(log);
+    }
+    // Outer flame
+    const flame = new THREE.Mesh(
+      new THREE.ConeGeometry(0.38, 1.15, 8),
+      new THREE.MeshStandardMaterial({
+        color: 0xff7a28,
+        emissive: 0xff4400,
+        emissiveIntensity: 2.0,
+        transparent: true,
+        opacity: 0.88,
+      }),
+    );
+    flame.position.set(fireX, 0.78, fireZ);
+    flame.name = 'campFlame';
+    // Mid flame
+    const flameMid = new THREE.Mesh(
+      new THREE.ConeGeometry(0.22, 0.85, 7),
+      new THREE.MeshStandardMaterial({
+        color: 0xffaa40,
+        emissive: 0xff8800,
+        emissiveIntensity: 2.4,
+        transparent: true,
+        opacity: 0.9,
+      }),
+    );
+    flameMid.position.set(fireX, 0.65, fireZ);
+    flameMid.name = 'campFlameMid';
+    // Inner white-hot core
+    const flameInner = new THREE.Mesh(
+      new THREE.ConeGeometry(0.12, 0.55, 6),
+      new THREE.MeshStandardMaterial({
+        color: 0xfff0c0,
+        emissive: 0xffee88,
+        emissiveIntensity: 2.8,
+        transparent: true,
+        opacity: 0.92,
+      }),
+    );
+    flameInner.position.set(fireX, 0.5, fireZ);
+    flameInner.name = 'campFlameInner';
+    // Ember volume (third layer — glowing spheres)
+    for (let ei = 0; ei < 6; ei++) {
+      const ea = (ei / 6) * Math.PI * 2;
+      const ember = new THREE.Mesh(
+        new THREE.SphereGeometry(0.06 + (ei % 2) * 0.03, 5, 4),
+        new THREE.MeshStandardMaterial({
+          color: 0xff6622,
+          emissive: 0xff4400,
+          emissiveIntensity: 1.8,
+        }),
+      );
+      ember.position.set(
+        fireX + Math.cos(ea) * 0.22,
+        0.28 + (ei % 3) * 0.08,
+        fireZ + Math.sin(ea) * 0.22,
+      );
+      ember.name = `campEmber${ei}`;
+      stoneGroup.add(ember);
+    }
+    const campLight = new THREE.PointLight(0xff9944, 3.2, 22, 2);
+    campLight.position.set(fireX, 1.6, fireZ);
+    campLight.name = 'campLight';
+    campLight.castShadow = false;
+    stoneGroup.add(fireBase, flame, flameMid, flameInner, campLight);
+    // Stone pedestal only (no MeshBasic gold ring jewelry)
+    const ped = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.6, 2.9, 0.32, 12),
+      new THREE.MeshStandardMaterial({
+        color: 0x4a4a52,
+        map: stoneMap,
+        roughness: 0.88,
+        flatShading: true,
+      }),
+    );
+    ped.position.y = 0.14;
+    ped.receiveShadow = true;
+    ped.castShadow = true;
+    // Subtle stone lip, not glowing gizmo
+    const pedLip = new THREE.Mesh(
+      new THREE.TorusGeometry(2.75, 0.08, 6, 24),
+      new THREE.MeshStandardMaterial({
+        color: 0x5a5858,
+        map: stoneMap,
+        roughness: 0.9,
+        metalness: 0.05,
+      }),
+    );
+    pedLip.rotation.x = Math.PI / 2;
+    pedLip.position.y = 0.32;
+    stoneGroup.add(ped, pedLip);
+
+    // Stepping-stone path from spawn approach → stones (cozy first camp)
+    const pathMat = new THREE.MeshStandardMaterial({
+      color: 0x7a7568,
+      map: stoneMap,
+      roughness: 0.9,
+      flatShading: true,
+    });
+    for (let i = 0; i < 6; i++) {
+      const t = (i + 1) / 7;
+      const sx = stonesCenter.x - 5 + t * 5;
+      const sz = stonesCenter.z + 4 - t * 4;
+      const step = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.45 + (i % 2) * 0.1, 0.5, 0.12, 7),
+        pathMat,
+      );
+      step.position.set(sx - stonesCenter.x, 0.06, sz - stonesCenter.z);
+      step.receiveShadow = true;
+      stoneGroup.add(step);
+    }
+
+    // Floating name tag (always readable from spawn)
+    stoneGroup.add(makeWorldLabel('VERWERFUNGSSTEINE', '#c9a227', '#ffe9a8'));
     stoneGroup.position.copy(stonesCenter);
     scene.add(stoneGroup);
 
@@ -284,7 +478,7 @@ export class WorldBuilder {
       ruins.push(wall);
     }
 
-    // --- Shrine marker (small living platform, green emissive) ---
+    // --- Shrine marker (living platform + warm point light) ---
     const shrinePos = new THREE.Vector3(-22, 0, -18);
     const shrine = new THREE.Group();
     shrine.name = 'shrine';
@@ -292,6 +486,7 @@ export class WorldBuilder {
       new THREE.CylinderGeometry(1.6, 1.8, 0.35, 8),
       new THREE.MeshStandardMaterial({
         color: 0x3a5a3a,
+        map: stoneMap,
         emissive: 0x1a4a28,
         emissiveIntensity: 0.45,
         roughness: 0.7,
@@ -299,6 +494,7 @@ export class WorldBuilder {
       }),
     );
     platform.position.y = 0.18;
+    platform.castShadow = true;
     const pillar = new THREE.Mesh(
       new THREE.CylinderGeometry(0.25, 0.35, 1.4, 6),
       new THREE.MeshStandardMaterial({
@@ -310,6 +506,7 @@ export class WorldBuilder {
       }),
     );
     pillar.position.y = 1.0;
+    pillar.castShadow = true;
     const orb = new THREE.Mesh(
       new THREE.SphereGeometry(0.28, 8, 8),
       new THREE.MeshStandardMaterial({
@@ -320,7 +517,9 @@ export class WorldBuilder {
       }),
     );
     orb.position.y = 1.85;
-    shrine.add(platform, pillar, orb);
+    const shrineLight = new THREE.PointLight(0x60ff90, 1.3, 14, 2);
+    shrineLight.position.set(0, 2.0, 0);
+    shrine.add(platform, pillar, orb, shrineLight);
     shrine.position.copy(shrinePos);
     scene.add(shrine);
 
@@ -377,6 +576,15 @@ export class WorldBuilder {
     // Spawn near Discarding Stones
     const spawnPos = new THREE.Vector3(stonesCenter.x - 5, 0, stonesCenter.z + 4);
 
+    // Shrine + amph labels for orientation
+    const shrineLabel = makeWorldLabel('SCHREIN', '#6bcb8a', '#b8ffd4');
+    shrineLabel.position.copy(shrinePos);
+    shrineLabel.position.y = 0;
+    scene.add(shrineLabel);
+    const amphLabel = makeWorldLabel('AMPHITHEATER', '#a78bfa', '#ddd6fe');
+    amphLabel.position.copy(amphitheaterPos);
+    scene.add(amphLabel);
+
     return {
       ground,
       trees,
@@ -385,6 +593,49 @@ export class WorldBuilder {
       amphitheaterPos,
       spawnPos,
       bounds,
+      stonesCenter,
     };
   }
+}
+
+/** Canvas sprite world label — AC-style readable landmark names */
+function makeWorldLabel(text: string, stroke: string, fill: string): THREE.Sprite {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 96;
+  const ctx = canvas.getContext('2d')!;
+  ctx.clearRect(0, 0, 512, 96);
+  ctx.fillStyle = 'rgba(12,10,18,0.78)';
+  const rr = 14;
+  ctx.beginPath();
+  ctx.moveTo(24 + rr, 16);
+  ctx.arcTo(488, 16, 488, 80, rr);
+  ctx.arcTo(488, 80, 24, 80, rr);
+  ctx.arcTo(24, 80, 24, 16, rr);
+  ctx.arcTo(24, 16, 488, 16, rr);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  ctx.fillStyle = fill;
+  ctx.font = 'bold 36px Segoe UI, Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 256, 48);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const spr = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: tex,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+    }),
+  );
+  spr.position.y = 4.2;
+  spr.scale.set(4.2, 0.8, 1);
+  spr.renderOrder = 8;
+  spr.name = `label_${text}`;
+  return spr;
 }

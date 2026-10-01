@@ -48,7 +48,8 @@ export class Hud {
   setHeat(heat: number) {
     this.heatNum.textContent = String(Math.floor(heat));
     this.heatEye.classList.toggle('open', heat >= 25);
-    this.heatEye.title = heat >= 100 ? 'War' : heat >= 50 ? 'Envoy' : heat >= 25 ? 'Watchers' : 'Rumors';
+    this.heatEye.title =
+      heat >= 100 ? 'Krieg' : heat >= 50 ? 'Gesandter' : heat >= 25 ? 'Beobachter' : 'Gerüchte';
   }
 
   setInventory(inv: Inventory, path: PathFlag) {
@@ -62,7 +63,7 @@ export class Hud {
       <div class="inv-row">Barren <b>${Math.floor(inv.ingot)}</b> · Essenz <b>${Math.floor(inv.essence)}</b> <small>Stab U</small></div>
       <div class="inv-row">Fallen <b>${inv.chalk_snare}</b> · Köder <b>${inv.shiny_tin_bait}</b>/<b>${inv.berry_bait}</b></div>
       <div class="inv-row">Futter <b>${Math.floor(inv.fodder)}</b> <small>Arbeiter füttern</small></div>
-      <div class="inv-hint">Am Boden: farbige Ringe + Name · <b>E halten</b> sammeln</div>
+      <div class="inv-hint">Am Boden: farbige Ringe + Name · <b>drüberlaufen</b> (wenn Stack voll → nichts)</div>
     `;
   }
 
@@ -97,14 +98,16 @@ export class Hud {
   }
 
   setBondRing(show: boolean, channeling: boolean, label: string) {
-    this.bondRing.classList.toggle('show', show && (channeling || label.includes('bereit') || label.includes('Entführung')));
+    // Ring pulse when bind-relevant; label only if short prompt needed
+    this.bondRing.classList.toggle('show', show);
     this.bondRing.classList.toggle('channel', channeling);
-    // Always show the label when we have focus text (glimmer status)
     this.bondLabel.classList.toggle('show', !!label);
     this.bondLabel.textContent = label;
-    // Color hint via class
-    this.bondLabel.classList.toggle('focus-dim', label.includes('noch nicht') || label.includes('Verbindung:'));
-    this.bondLabel.classList.toggle('focus-ready', label.includes('bereit') || label.includes('Entführung'));
+    this.bondLabel.classList.toggle(
+      'focus-dim',
+      label.includes('noch nicht') || label.length > 8,
+    );
+    this.bondLabel.classList.toggle('focus-ready', channeling || label === 'F');
   }
 
   setJournal(text: string) {

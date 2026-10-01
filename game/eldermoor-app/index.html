@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Eldermoor — First Sealbreak</title>
+    <title>Eldermoor — Erster Siegelbruch</title>
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
       html, body { width: 100%; height: 100%; overflow: hidden; background: #0b0a12; }
@@ -215,47 +215,47 @@
       <div id="ui">
         <div id="title-screen">
           <h1>ELDERMOOR</h1>
-          <div class="tag">The wilderness does not grade you.</div>
+          <div class="tag">Die Wildnis benotet dich nicht.</div>
           <div>
-            <button id="btn-start">Enter the Wild Arcana</button>
-            <button id="btn-continue" class="secondary">Continue</button>
+            <button id="btn-start">Wild Arcana betreten</button>
+            <button id="btn-continue" class="secondary">Fortsetzen</button>
           </div>
           <div class="help">
-            <b>WASD</b> move · <b>Space</b> dash · <b>Mouse</b> look (click to lock)<br/>
-            <b>E</b> gather / place · <b>F</b> capture · <b>1–4</b> spells · <b>Click/Z</b> cast<br/>
-            <b>Q</b> snare · <b>G</b> fodder · <b>B</b> build · <b>C</b> jobs · <b>X</b> field party · <b>V</b> path<br/>
-            <b>M</b> mount · <b>U</b> wand upgrade · <b>Esc</b> pause/campaign<br/>
-            Heat 50+: Inquisitor Mael · Night raids · SE Ashcrown boss
+            <b>WASD</b> bewegen · <b>Leertaste</b> Sprint · <b>Maus</b> schauen (Klick = Lock)<br/>
+            <b>Drüberlaufen</b> sammeln · <b>E</b> bauen · <b>F</b> binden · <b>1–4</b> Zauber · <b>Klick/Z</b> wirken<br/>
+            <b>Q</b> Falle · <b>G</b> Futter · <b>B</b> bauen · <b>C</b> Jobs · <b>X</b> Feldtrupp · <b>V</b> Pfad<br/>
+            <b>M</b> Reittier · <b>U</b> Stab · <b>Esc</b> Pause/Kampagne<br/>
+            Heat 50+: Inquisitor Mael · Nacht-Raids · SE Ashcrown
           </div>
         </div>
 
         <div id="hud-top" style="display:none">
           <div class="bar-wrap">
-            <div class="bar-label">UNLISTED · VITALS</div>
+            <div class="bar-label">UNLISTED · LEBEN</div>
             <div class="bar hp"><i id="hp-bar" style="width:100%"></i></div>
             <div class="bar mana"><i id="mana-bar" style="width:100%"></i></div>
             <div class="bar strain"><i id="strain-bar" style="width:0%"></i></div>
           </div>
-          <div id="heat-eye" title="Council Heat">👁<div id="heat-num">0</div></div>
+          <div id="heat-eye" title="Rats-Heat">👁<div id="heat-num">0</div></div>
         </div>
 
         <div id="objective-bar" style="display:none">
-          <span id="objective-text">Survive. Bind. Build.</span>
+          <span id="objective-text">Überleben. Binden. Bauen.</span>
           <span id="compass-hint"></span>
         </div>
 
         <div id="journal" style="display:none">
           <b>Journal</b><br/>
-          <span id="journal-text">Rain that tastes like chalk. Survive. Bind something. Build a roof that is yours.</span>
+          <span id="journal-text">Regen nach Kreide. Überleben. Etwas binden. Ein Dach, das dir gehört.</span>
         </div>
 
         <div id="inv" style="display:none"></div>
         <div id="party" style="display:none"></div>
         <div id="spells" style="display:none">
-          <div class="spell" data-s="1"><kbd>1</kbd>Bolt</div>
+          <div class="spell" data-s="1"><kbd>1</kbd>Blitz</div>
           <div class="spell" data-s="2"><kbd>2</kbd>Ward</div>
-          <div class="spell" data-s="3"><kbd>3</kbd>Bind</div>
-          <div class="spell" data-s="4"><kbd>4</kbd>Thorn</div>
+          <div class="spell" data-s="3"><kbd>3</kbd>Band</div>
+          <div class="spell" data-s="4"><kbd>4</kbd>Dorn</div>
         </div>
         <div id="prompt"></div>
         <div id="bond-ring"></div>
@@ -263,32 +263,32 @@
         <div id="toast"></div>
         <div id="crosshair" style="display:none"></div>
         <div id="menu" style="display:none">
-          <button id="btn-build">Build (B)</button>
-          <button id="btn-save">Save</button>
-          <button id="btn-path">Path Ritual (V)</button>
+          <button id="btn-build">Bauen (B)</button>
+          <button id="btn-save">Speichern</button>
+          <button id="btn-path">Pfad-Ritual (V)</button>
         </div>
 
         <div id="path-modal">
           <div class="modal-card">
-            <h2>The Amphitheater Remembers</h2>
-            <p>Choose how power enters you. You may mix later — but commitment stains the Arcana.</p>
+            <h2>Das Amphitheater erinnert sich</h2>
+            <p>Wähle, wie Macht dich durchzieht. Später kannst du mischen — aber Bindung färbt die Arcana.</p>
             <div class="row">
-              <button class="vita" id="pick-vita">VITA — Life<br/><small>Pacts, growth, lower heat</small></button>
-              <button class="mortis" id="pick-mortis">MORTIS — Death<br/><small>Brands, spikes, higher heat</small></button>
+              <button class="vita" id="pick-vita">VITA — Leben<br/><small>Pakte, Wachstum, weniger Heat</small></button>
+              <button class="mortis" id="pick-mortis">MORTIS — Tod<br/><small>Male, Stacheln, mehr Heat</small></button>
             </div>
             <div class="row" style="margin-top:10px">
-              <button id="path-cancel">Not yet</button>
+              <button id="path-cancel">Noch nicht</button>
             </div>
           </div>
         </div>
 
         <div id="assign-modal">
           <div class="modal-card">
-            <h2>Assign Workforce</h2>
-            <p id="assign-desc">Put a bound beast to work.</p>
+            <h2>Arbeitskraft zuweisen</h2>
+            <p id="assign-desc">Eine gebundene Bestie zur Arbeit schicken.</p>
             <div class="row" id="assign-buttons"></div>
             <div class="row" style="margin-top:10px">
-              <button id="assign-close">Close</button>
+              <button id="assign-close">Schließen</button>
             </div>
           </div>
         </div>

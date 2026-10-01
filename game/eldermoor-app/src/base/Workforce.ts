@@ -58,7 +58,7 @@ export class Workforce {
       if (beast.mood < LOW_MOOD) {
         if (this.moodWarnCd <= 0) {
           onProduce(
-            `${beast.name} is too weary to work (mood ${Math.floor(beast.mood)}). Feed fodder.`,
+            `${beast.name} zu müde (Stimmung ${Math.floor(beast.mood)}). Futter geben (G).`,
           );
           this.moodWarnCd = WARN_INTERVAL;
         }
@@ -79,7 +79,7 @@ export class Workforce {
           if (this.woodBank >= 1) {
             const n = Math.floor(this.woodBank);
             this.woodBank -= n;
-            onProduce(`+${n} wood — ${beast.name} (lumber)`);
+            onProduce(`+${n} Holz — ${beast.name} (Sägeplatz)`);
           }
           break;
         }
@@ -94,7 +94,7 @@ export class Workforce {
           if (this.ingotBank >= 1) {
             const n = Math.floor(this.ingotBank);
             this.ingotBank -= n;
-            onProduce(`+${n} ingot — ${beast.name} (smelt)`);
+            onProduce(`+${n} Barren — ${beast.name} (Schmelze)`);
           }
           break;
         }
@@ -105,12 +105,12 @@ export class Workforce {
           if (Math.random() < herbChance) {
             inv.herb += 1;
             found = true;
-            onProduce(`+1 herb — ${beast.name} (scout)`);
+            onProduce(`+1 Kraut — ${beast.name} (Spähen)`);
           }
           if (Math.random() < essenceChance) {
             inv.essence += 1;
             found = true;
-            onProduce(`+1 essence — ${beast.name} (scout)`);
+            onProduce(`+1 Essenz — ${beast.name} (Spähen)`);
           }
           if (found) this.consumeFodder(inv);
           else if (inv.fodder > 0) {

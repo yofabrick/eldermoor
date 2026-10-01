@@ -4,13 +4,26 @@ import { SPECIES } from '../data/species';
 
 type THREE = typeof THREE_NS;
 
-function mat(THREE: THREE, color: number, opts?: { transparent?: boolean; opacity?: number }) {
+function mat(
+  THREE: THREE,
+  color: number,
+  opts?: {
+    transparent?: boolean;
+    opacity?: number;
+    emissive?: number;
+    emissiveIntensity?: number;
+    roughness?: number;
+    metalness?: number;
+  },
+) {
   return new THREE.MeshStandardMaterial({
     color,
-    roughness: 0.75,
-    metalness: 0.05,
+    roughness: opts?.roughness ?? 0.75,
+    metalness: opts?.metalness ?? 0.05,
     transparent: opts?.transparent ?? false,
     opacity: opts?.opacity ?? 1,
+    emissive: opts?.emissive ?? 0x000000,
+    emissiveIntensity: opts?.emissiveIntensity ?? 0,
   });
 }
 
@@ -46,46 +59,91 @@ export function createBeastMesh(speciesId: string, THREE: THREE): THREE_NS.Group
 
   switch (speciesId) {
     case 'B01': {
-      // Small round thief — pouch belly, stubby limbs
-      const body = new THREE.Mesh(new THREE.SphereGeometry(0.55, 8, 6), bodyMat);
+      // Glimmerpouch — exaggerated gold thief silhouette (tall ears + big front pouch)
+      const goldMat = mat(THREE, 0xe8c84a, {
+        emissive: 0xc9a227,
+        emissiveIntensity: 0.65,
+        roughness: 0.32,
+        metalness: 0.4,
+      });
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.52, 10, 8), bodyMat);
       addPart(group, body, 0, 0.55, 0);
-      const pouch = new THREE.Mesh(new THREE.SphereGeometry(0.32, 6, 5), accentMat);
-      addPart(group, pouch, 0, 0.35, 0.28);
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 7, 6), bodyMat);
-      addPart(group, head, 0, 0.95, 0.2);
+      // LARGE front pouch mass — primary silhouette cue
+      const pouch = new THREE.Mesh(new THREE.SphereGeometry(0.48, 10, 8), goldMat);
+      addPart(group, pouch, 0, 0.42, 0.42);
+      const gem = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.16, 0),
+        mat(THREE, 0xfff6c8, { emissive: 0xffe08a, emissiveIntensity: 1.1, roughness: 0.2, metalness: 0.45 }),
+      );
+      addPart(group, gem, 0, 0.55, 0.78);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.36, 8, 7), bodyMat);
+      addPart(group, head, 0, 1.02, 0.18);
+      for (const sx of [-0.24, 0.24]) {
+        const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.13, 5, 4), accentMat);
+        addPart(group, cheek, sx, 0.95, 0.32);
+      }
       for (const sx of [-0.28, 0.28]) {
         const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.28, 0.14), darkMat);
         addPart(group, leg, sx, 0.14, 0.05);
       }
-      const earL = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.22, 5), darkMat);
-      addPart(group, earL, -0.18, 1.22, 0.15, 0, 0, 0.35);
-      const earR = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.22, 5), darkMat);
-      addPart(group, earR, 0.18, 1.22, 0.15, 0, 0, -0.35);
+      // TALL ear pair — unique outline at 8–12m
+      const earL = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.48, 5), darkMat);
+      addPart(group, earL, -0.18, 1.45, 0.12, 0.1, 0, 0.25);
+      const earR = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.48, 5), darkMat);
+      addPart(group, earR, 0.18, 1.45, 0.12, 0.1, 0, -0.25);
+      // Inner ear gold flash
+      for (const sx of [-0.18, 0.18]) {
+        const inner = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.28, 4), goldMat);
+        addPart(group, inner, sx, 1.38, 0.16, 0.1, 0, sx > 0 ? -0.2 : 0.2);
+      }
+      const aura = new THREE.Mesh(
+        new THREE.SphereGeometry(0.9, 12, 10),
+        mat(THREE, 0xffe08a, {
+          transparent: true,
+          opacity: 0.24,
+          emissive: 0xc9a227,
+          emissiveIntensity: 0.7,
+        }),
+      );
+      aura.castShadow = false;
+      addPart(group, aura, 0, 0.55, 0);
       break;
     }
     case 'B02': {
-      // Boar-like elongated body, snout, tusks
-      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.55, 1.15), bodyMat);
+      // Brushback Boar — tall center bristle + dark snout block (worker star)
+      const hide = mat(THREE, color, { roughness: 0.92 });
+      const bristle = mat(THREE, shade(color, 0.55), { roughness: 0.95 });
+      const darkBlock = mat(THREE, shade(color, 0.4), { roughness: 0.95 });
+      const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.6, 4, 8), hide);
+      torso.rotation.z = Math.PI / 2;
       addPart(group, torso, 0, 0.55, 0);
-      const snout = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.28, 0.4), darkMat);
-      addPart(group, snout, 0, 0.5, 0.7);
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 6, 5), bodyMat);
-      addPart(group, head, 0, 0.75, 0.45);
-      for (const sx of [-0.18, 0.18]) {
-        const tusk = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.28, 5), accentMat);
-        addPart(group, tusk, sx, 0.38, 0.85, Math.PI / 2.4, 0, sx > 0 ? -0.2 : 0.2);
+      // Darker secondary block on snout + legs (silhouette mass)
+      const snout = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.34, 0.5), darkBlock);
+      addPart(group, snout, 0, 0.48, 0.75);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.38, 7, 6), hide);
+      addPart(group, head, 0, 0.8, 0.4);
+      // Brush ridge — TALL center spike for outline
+      for (let i = 0; i < 6; i++) {
+        const h = i === 2 || i === 3 ? 0.48 : 0.22 + (i % 2) * 0.08;
+        const br = new THREE.Mesh(new THREE.ConeGeometry(0.08, h, 4), bristle);
+        addPart(group, br, 0, 0.95 + h * 0.15, -0.4 + i * 0.16, 0.35, 0, 0);
+      }
+      for (const sx of [-0.22, 0.22]) {
+        const tusk = new THREE.Mesh(
+          new THREE.ConeGeometry(0.08, 0.38, 5),
+          mat(THREE, 0xf0e8d0, { roughness: 0.4, metalness: 0.15 }),
+        );
+        addPart(group, tusk, sx, 0.34, 0.95, Math.PI / 2.3, 0, sx > 0 ? -0.28 : 0.28);
       }
       for (const [lx, lz] of [
-        [-0.28, 0.35],
-        [0.28, 0.35],
-        [-0.28, -0.4],
-        [0.28, -0.4],
+        [-0.3, 0.38],
+        [0.3, 0.38],
+        [-0.3, -0.42],
+        [0.3, -0.42],
       ] as const) {
-        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.4, 0.16), darkMat);
-        addPart(group, leg, lx, 0.2, lz);
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 0.45, 6), darkBlock);
+        addPart(group, leg, lx, 0.22, lz);
       }
-      const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.2, 0.9), accentMat);
-      addPart(group, ridge, 0, 0.88, -0.05);
       break;
     }
     case 'B03': {
@@ -239,12 +297,41 @@ export function createBeastMesh(speciesId: string, THREE: THREE): THREE_NS.Group
     }
   }
 
-  // Tiny eyes on most forms (skip pure ghost optional — still add)
-  const eyeY = speciesId === 'B07' ? 1.4 : speciesId === 'B06' ? 1.3 : speciesId === 'B12' ? 1.05 : 0.9;
-  const eyeZ = speciesId === 'B02' ? 0.65 : speciesId === 'B04' ? 0.7 : 0.35;
-  for (const sx of [-0.1, 0.1]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), eyeMat);
-    addPart(group, eye, sx, eyeY, eyeZ);
+  // Large readable eyes — local size tuned so post-scale still reads at 8–12m
+  if (speciesId === 'B01' || speciesId === 'B02' || speciesId === 'B03') {
+    const white = mat(THREE, 0xfff8f0, { roughness: 0.35 });
+    const irisCol = speciesId === 'B01' ? 0x1a5a38 : speciesId === 'B02' ? 0x2a1810 : 0x3a2818;
+    // Bigger local eyes for B01 (scaled down by species.scale) and B02 (worker star)
+    const eyeR = speciesId === 'B01' ? 0.13 : speciesId === 'B02' ? 0.11 : 0.09;
+    const irisR = eyeR * 0.52;
+    for (const sx of [-1, 1]) {
+      const xOff = sx * (speciesId === 'B02' ? 0.16 : 0.14);
+      const y = speciesId === 'B02' ? 0.88 : speciesId === 'B01' ? 1.02 : 1.0;
+      const z = speciesId === 'B02' ? 0.68 : speciesId === 'B01' ? 0.52 : 0.48;
+      const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(eyeR, 7, 6), white);
+      addPart(group, eyeWhite, xOff, y, z);
+      const iris = new THREE.Mesh(
+        new THREE.SphereGeometry(irisR, 6, 5),
+        mat(THREE, irisCol, { emissive: irisCol, emissiveIntensity: 0.25 }),
+      );
+      addPart(group, iris, xOff, y, z + eyeR * 0.75);
+      // Specular catchlight
+      const spark = new THREE.Mesh(
+        new THREE.SphereGeometry(irisR * 0.35, 4, 4),
+        mat(THREE, 0xffffff, { emissive: 0xffffff, emissiveIntensity: 0.4, roughness: 0.2 }),
+      );
+      addPart(group, spark, xOff + 0.02, y + 0.02, z + eyeR * 0.95);
+    }
+  }
+
+  // Tiny eyes on non-hero forms only (B01–B03 already have large eyes)
+  if (speciesId !== 'B01' && speciesId !== 'B02' && speciesId !== 'B03') {
+    const eyeY = speciesId === 'B07' ? 1.4 : speciesId === 'B06' ? 1.3 : speciesId === 'B12' ? 1.05 : 0.9;
+    const eyeZ = speciesId === 'B04' ? 0.7 : 0.35;
+    for (const sx of [-0.1, 0.1]) {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), eyeMat);
+      addPart(group, eye, sx, eyeY, eyeZ);
+    }
   }
 
   group.scale.setScalar(scale);

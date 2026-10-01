@@ -15,27 +15,27 @@ export class PauseMenu {
       el.id = 'pause-menu';
       el.innerHTML = `
         <div class="pause-card">
-          <h2>Paused — Eldermoor</h2>
-          <p class="pause-sub">The Arcana waits. Barely.</p>
+          <h2>Pause — Eldermoor</h2>
+          <p class="pause-sub">Die Arcana wartet. Kaum.</p>
           <div class="pause-cols">
             <div>
-              <h3>Campaign</h3>
+              <h3>Kampagne</h3>
               <ul id="pause-milestones"></ul>
             </div>
             <div>
-              <h3>Controls</h3>
+              <h3>Steuerung</h3>
               <div class="pause-help">
-                WASD move · Mouse look · Space dash/gallop<br/>
-                E gather/build · F capture · 1–4 spells · Click cast<br/>
-                Q snare · G fodder · B build · C jobs · X field<br/>
-                M mount · V path · U upgrade wand · T save · Esc pause
+                WASD bewegen · Maus schauen · Leertaste Sprint<br/>
+                Drüberlaufen sammeln · E bauen · F binden · 1–4 Zauber · Klick wirken<br/>
+                Q Falle · G Futter · B bauen · C Jobs · X Feld<br/>
+                M Reittier · V Pfad · U Stab · T speichern · Esc Pause
               </div>
-              <h3>Wand</h3>
+              <h3>Zauberstab</h3>
               <div id="pause-wand"></div>
-              <button type="button" id="pause-upgrade">Upgrade wand</button>
+              <button type="button" id="pause-upgrade">Stab upgraden</button>
             </div>
           </div>
-          <button type="button" id="pause-resume" class="pause-primary">Resume (Esc)</button>
+          <button type="button" id="pause-resume" class="pause-primary">Weiter (Esc)</button>
         </div>
       `;
       const style = document.createElement('style');

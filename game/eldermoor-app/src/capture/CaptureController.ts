@@ -8,12 +8,16 @@ export type CaptureState = 'idle' | 'window' | 'channeling' | 'resolve';
 /** Events emitted from `update`. */
 export type CaptureEventKind = 'none' | 'success' | 'fail' | 'window_closed';
 
+export type FailKind = 'rng' | 'distance' | 'release' | 'other';
+
 export interface CaptureUpdateResult {
   event: CaptureEventKind;
   /** Catch probability used for the roll (success/fail only). */
   catchProb?: number;
   /** Species fail lesson on a failed catch. */
   failLesson?: string;
+  /** Clear player-facing reason for fail */
+  failKind?: FailKind;
   target?: WildBeast | null;
   method?: CaptureMethod;
 }
@@ -67,6 +71,8 @@ export class CaptureController {
   holdingChannel = false;
   /** Seconds released during channel before cancel */
   private releaseTimer = 0;
+  /** First bind of the session should feel fair (tutorial). */
+  tutorialBoost = false;
 
   /**
    * Open a capture opportunity if soften conditions passed.
@@ -86,17 +92,36 @@ export class CaptureController {
   }
 
   /**
+   * Live odds for UI — same formula as the roll at channel end.
+   * Pass method if known; otherwise uses bond as free baseline.
+   */
+  estimateChance(beast: WildBeast | null, method: CaptureMethod = 'bond'): number {
+    if (!beast) return 0;
+    const species = SPECIES[beast.speciesId];
+    return catchChance({
+      catchBase: species?.stats.catchBase ?? 0.3,
+      wil: species?.stats.wil ?? 2,
+      methodMult: methodMult(method),
+      softenQuality: this.state === 'idle' ? 1.1 : this.softenQuality,
+      toolTier: this.toolTier,
+      pathAffinity: this.pathAffinity,
+      coopBonus: this.coopBonus,
+      tutorialBoost: this.tutorialBoost && beast.speciesId === 'B01',
+    });
+  }
+
+  /**
    * Start channeling a capture method while the window is open.
    * Consumes snare/bait from `inv` on success (see class docs).
    */
   beginChannel(method: CaptureMethod, inv: Inventory): BeginChannelResult {
     if (this.state !== 'window' || !this.target) {
-      return { ok: false, msg: 'No capture window open.' };
+      return { ok: false, msg: 'Kein Binde-Fenster offen — Ziel ansehen, bis grün.' };
     }
 
     if (method === 'snare') {
       if (inv.chalk_snare <= 0) {
-        return { ok: false, msg: 'Need a chalk snare.' };
+        return { ok: false, msg: 'Kreide-Falle fehlt (Q / Inventar).' };
       }
       inv.chalk_snare -= 1;
     } else if (method === 'bait') {
@@ -105,7 +130,7 @@ export class CaptureController {
       } else if (inv.berry_bait > 0) {
         inv.berry_bait -= 1;
       } else {
-        return { ok: false, msg: 'Need shiny tin or berry bait.' };
+        return { ok: false, msg: 'Köder fehlt (Glitzerzinn oder Beeren).' };
       }
     }
     // bond: free for now (mana cost later)
@@ -113,7 +138,7 @@ export class CaptureController {
     this.method = method;
     this.channelProgress = 0;
     this.state = 'channeling';
-    return { ok: true, msg: `Channeling ${method}…` };
+    return { ok: true, msg: `Kanal: ${method}… F halten` };
   }
 
   /**
@@ -155,7 +180,8 @@ export class CaptureController {
           this.clear(true);
           return {
             event: 'fail',
-            failLesson: 'Zu weit — der Glimmer reißt.',
+            failKind: 'distance',
+            failLesson: 'Zu weit — näher ran und F halten bis 100%.',
             target,
             method,
           };
@@ -170,7 +196,8 @@ export class CaptureController {
           this.clear(true);
           return {
             event: 'fail',
-            failLesson: 'F losgelassen — Verbindung abgebrochen.',
+            failKind: 'release',
+            failLesson: 'F zu früh losgelassen — Taste halten bis der Balken voll ist.',
             target,
             method,
           };
@@ -204,7 +231,7 @@ export class CaptureController {
 
     const catchBase = species?.stats.catchBase ?? 0.3;
     const wil = species?.stats.wil ?? 2;
-    const failLesson = species?.failLesson ?? 'It slips free.';
+    const tip = species?.failLesson ?? 'Verbindung war zu schwach.';
 
     const catchProb = catchChance({
       catchBase,
@@ -214,6 +241,7 @@ export class CaptureController {
       toolTier: this.toolTier,
       pathAffinity: this.pathAffinity,
       coopBonus: this.coopBonus,
+      tutorialBoost: this.tutorialBoost && target?.speciesId === 'B01',
     });
 
     const success = Math.random() < catchProb;
@@ -224,7 +252,10 @@ export class CaptureController {
     if (success) {
       return { event: 'success', catchProb, target, method };
     }
-    return { event: 'fail', catchProb, failLesson, target, method };
+    // RNG fail — player did everything right; say so + chance + tip
+    const pct = Math.round(catchProb * 100);
+    const failLesson = `Pech! Chance war ${pct}% — du hast richtig gespielt. Nochmal wenn grün. (${tip})`;
+    return { event: 'fail', catchProb, failLesson, failKind: 'rng', target, method };
   }
 
   private clear(clearTarget: boolean): void {

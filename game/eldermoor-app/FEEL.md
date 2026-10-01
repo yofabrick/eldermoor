@@ -22,9 +22,14 @@
 - Soft camera punch on hit taken / boss breath
 
 ## Gather
-- Named floating labels
-- Progress in prompt while holding E
-- +resource float + blip
+- Named floating labels ("Drüberlaufen")
+- Walk-over instant pickup (no E); blocked only if stack at cap
+- +resource float + blip; full-inventory toast (throttled)
+
+## Build
+- Ghost = translucent preview; E places permanent mesh with pad + gold ring + DE name
+- Pay once, then always place (never re-check afford after pay)
+- Auto-save after place; workers visible at lumber/smelter
 
 ## Clarity rule
 If a new player cannot answer "what should I do?" in 10 seconds, add a prompt — don't add a system.

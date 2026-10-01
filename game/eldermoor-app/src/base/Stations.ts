@@ -1,7 +1,19 @@
 import type { Inventory, Station } from '../core/types';
 import type * as ThreeNS from 'three';
+import { makeBarkTexture, makeStoneTexture } from '../render/ProceduralTextures';
 
 type ThreeLib = typeof ThreeNS;
+
+let _barkMap: ThreeNS.Texture | null = null;
+let _stoneMap: ThreeNS.Texture | null = null;
+function barkMap() {
+  if (!_barkMap) _barkMap = makeBarkTexture(128);
+  return _barkMap;
+}
+function stoneMap() {
+  if (!_stoneMap) _stoneMap = makeStoneTexture(128);
+  return _stoneMap;
+}
 
 export const buildCosts: Record<Station['kind'], Partial<Inventory>> = {
   bed: { wood: 4 },
@@ -34,10 +46,16 @@ export function pay(inv: Inventory, kind: Station['kind']): void {
 function mat(
   THREE: ThreeLib,
   color: number,
-  opts?: { emissive?: number; emissiveIntensity?: number; roughness?: number },
+  opts?: {
+    emissive?: number;
+    emissiveIntensity?: number;
+    roughness?: number;
+    map?: 'bark' | 'stone' | null;
+  },
 ) {
   return new THREE.MeshStandardMaterial({
     color,
+    map: opts?.map === 'bark' ? barkMap() : opts?.map === 'stone' ? stoneMap() : null,
     roughness: opts?.roughness ?? 0.85,
     metalness: 0.05,
     emissive: opts?.emissive ?? 0x000000,
@@ -100,14 +118,30 @@ function cyl(
 }
 
 function buildBed(THREE: ThreeLib, g: ThreeNS.Group) {
-  g.add(box(THREE, 1.4, 0.08, 0.7, 0x5c4033, 0.04));
+  const frame = new THREE.Mesh(
+    new THREE.BoxGeometry(1.4, 0.08, 0.7),
+    mat(THREE, 0x6b4f2a, { map: 'bark', roughness: 0.9 }),
+  );
+  frame.position.y = 0.04;
+  frame.castShadow = true;
+  g.add(frame);
   g.add(box(THREE, 1.35, 0.06, 0.65, 0x8b6b4a, 0.1));
   g.add(box(THREE, 0.35, 0.12, 0.55, 0xc4a574, 0.16, { x: -0.45 }));
   g.add(box(THREE, 0.9, 0.05, 0.55, 0x4a6741, 0.14, { x: 0.2 }));
+  // Cozy lantern
+  const lamp = new THREE.PointLight(0xffc080, 0.55, 5, 2);
+  lamp.position.set(0.5, 0.6, 0);
+  g.add(lamp);
 }
 
 function buildStorage(THREE: ThreeLib, g: ThreeNS.Group) {
-  g.add(box(THREE, 0.9, 0.75, 0.9, 0x8b6914, 0.375));
+  const crate = new THREE.Mesh(
+    new THREE.BoxGeometry(0.9, 0.75, 0.9),
+    mat(THREE, 0x8b6914, { map: 'bark', roughness: 0.88 }),
+  );
+  crate.position.y = 0.375;
+  crate.castShadow = true;
+  g.add(crate);
   g.add(box(THREE, 0.95, 0.08, 0.95, 0x6b4f1a, 0.78));
   g.add(box(THREE, 0.96, 0.06, 0.12, 0x3d2e12, 0.4, { z: 0.42 }));
   g.add(box(THREE, 0.96, 0.06, 0.12, 0x3d2e12, 0.4, { z: -0.42 }));
@@ -146,38 +180,38 @@ function buildPen(THREE: ThreeLib, g: ThreeNS.Group) {
 }
 
 function buildLumber(THREE: ThreeLib, g: ThreeNS.Group) {
-  g.add(cyl(THREE, 0.35, 0.4, 0.55, 0x6b4f2a, 0.275, { radial: 10 }));
+  const post = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.35, 0.4, 0.55, 10),
+    mat(THREE, 0x8b6914, { map: 'bark', roughness: 0.92 }),
+  );
+  post.position.y = 0.275;
+  post.castShadow = true;
+  g.add(post);
   g.add(cyl(THREE, 0.32, 0.32, 0.06, 0x8b6914, 0.58, { radial: 10 }));
   g.add(box(THREE, 0.08, 0.35, 0.08, 0x4a3728, 0.75, { x: 0.25, z: 0.15 }));
   g.add(box(THREE, 0.22, 0.12, 0.04, 0x888888, 0.95, { x: 0.25, z: 0.15 }));
-  // Log pile (cylinders on their side)
-  g.add(
-    cyl(THREE, 0.12, 0.12, 0.9, 0x7a5c3a, 0.12, {
-      x: -0.9,
-      z: 0.1,
-      radial: 8,
-      rz: Math.PI / 2,
-      roughness: 0.95,
-    }),
+  for (const [y, z] of [
+    [0.12, 0.1],
+    [0.28, -0.05],
+    [0.42, 0.05],
+  ] as const) {
+    const log = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.11, 0.12, 0.9, 8),
+      mat(THREE, 0x7a5c3a, { map: 'bark', roughness: 0.95 }),
+    );
+    log.rotation.z = Math.PI / 2;
+    log.position.set(-0.9, y, z);
+    log.castShadow = true;
+    g.add(log);
+  }
+  const stack = new THREE.Mesh(
+    new THREE.BoxGeometry(0.7, 0.35, 0.5),
+    mat(THREE, 0x6b4f2a, { map: 'bark', roughness: 0.9 }),
   );
-  g.add(
-    cyl(THREE, 0.11, 0.11, 0.85, 0x6b4f2a, 0.28, {
-      x: -0.9,
-      z: -0.05,
-      radial: 8,
-      rz: Math.PI / 2,
-      roughness: 0.95,
-    }),
-  );
-  g.add(
-    cyl(THREE, 0.1, 0.1, 0.8, 0x8b6914, 0.42, {
-      x: -0.9,
-      z: 0.05,
-      radial: 8,
-      rz: Math.PI / 2,
-      roughness: 0.95,
-    }),
-  );
+  stack.position.set(0.7, 0.2, -0.5);
+  stack.name = 'woodStack';
+  stack.castShadow = true;
+  g.add(stack);
 }
 
 function buildWorkbench(THREE: ThreeLib, g: ThreeNS.Group) {
@@ -191,7 +225,13 @@ function buildWorkbench(THREE: ThreeLib, g: ThreeNS.Group) {
 }
 
 function buildSmelter(THREE: ThreeLib, g: ThreeNS.Group) {
-  g.add(cyl(THREE, 0.55, 0.65, 1.1, 0x6a6a6a, 0.55, { radial: 10 }));
+  const body = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.55, 0.65, 1.1, 10),
+    mat(THREE, 0x7a7a82, { map: 'stone', roughness: 0.75 }),
+  );
+  body.position.y = 0.55;
+  body.castShadow = true;
+  g.add(body);
   g.add(cyl(THREE, 0.35, 0.4, 0.35, 0x555555, 1.25, { radial: 8 }));
   g.add(
     cyl(THREE, 0.28, 0.32, 0.4, 0xff6a00, 0.45, {
@@ -209,11 +249,27 @@ function buildSmelter(THREE: ThreeLib, g: ThreeNS.Group) {
     }),
   );
   g.add(box(THREE, 0.7, 0.12, 0.7, 0x4a4a4a, 0.06));
+  const fire = new THREE.PointLight(0xff6622, 1.6, 10, 2);
+  fire.position.set(0, 0.9, 0.4);
+  fire.name = 'smelterLight';
+  g.add(fire);
 }
 
 function buildTower(THREE: ThreeLib, g: ThreeNS.Group) {
-  g.add(cyl(THREE, 0.35, 0.45, 0.4, 0x6b6b6b, 0.2, { radial: 8 }));
-  g.add(box(THREE, 0.55, 3.2, 0.55, 0x7a7a7a, 1.9));
+  const base = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.35, 0.45, 0.4, 8),
+    mat(THREE, 0x7a7a82, { map: 'stone', roughness: 0.8 }),
+  );
+  base.position.y = 0.2;
+  base.castShadow = true;
+  g.add(base);
+  const shaft = new THREE.Mesh(
+    new THREE.BoxGeometry(0.55, 3.2, 0.55),
+    mat(THREE, 0x8a8a92, { map: 'stone', roughness: 0.78 }),
+  );
+  shaft.position.y = 1.9;
+  shaft.castShadow = true;
+  g.add(shaft);
   g.add(box(THREE, 0.9, 0.15, 0.9, 0x8b6914, 3.55));
   for (const [x, z] of [
     [-0.35, -0.35],
@@ -230,6 +286,9 @@ function buildTower(THREE: ThreeLib, g: ThreeNS.Group) {
       radial: 6,
     }),
   );
+  const beacon = new THREE.PointLight(0xffaa44, 1.4, 18, 2);
+  beacon.position.set(0, 4.3, 0);
+  g.add(beacon);
 }
 
 /** Procedural station mesh for the base builder. Pass the three module as THREE. */

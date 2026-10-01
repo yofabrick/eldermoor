@@ -20,6 +20,20 @@ export interface Inventory {
   ingot: number;
 }
 
+/** Soft caps for walk-over gather (tools/bait stay unlimited for now). */
+export const INVENTORY_CAPS: Record<
+  'wood' | 'stone' | 'herb' | 'ore' | 'essence' | 'ingot' | 'fodder',
+  number
+> = {
+  wood: 80,
+  stone: 80,
+  herb: 40,
+  ore: 40,
+  essence: 40,
+  ingot: 30,
+  fodder: 40,
+};
+
 export interface OwnedBeast {
   uid: string;
   speciesId: string;

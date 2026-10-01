@@ -1,4 +1,4 @@
-{
+﻿{
   "version": "0.4",
   "game": "Eldermoor",
   "slice": "First Sealbreak",
@@ -114,7 +114,7 @@
       },
       "bestMethods": ["bond", "dominance_brand"],
       "failLesson": "Pure DPS fails; they phase out.",
-      "fantasy": "House-spirit labor — wonder plus ethical teeth.",
+      "fantasy": "House-spirit labor â€” wonder plus ethical teeth.",
       "bark": "The hearth remembers.",
       "fieldSlots": 1,
       "upkeepFodderPerHour": 0.3,
@@ -122,7 +122,7 @@
     },
     {
       "id": "B06",
-      "name": "Mirelurk Stag",
+      "name": "Blackvein Stag",
       "tier": 2,
       "biome": "BlackveinMire",
       "pathSynergy": "N",
@@ -288,3 +288,4 @@
     }
   ]
 }
+

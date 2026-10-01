@@ -33,9 +33,10 @@ export class HelpStrip {
 
   setDefault() {
     this.el.innerHTML = `
-      <b>Sammeln:</b> E an farbigen Haufen (Holz/Stein/Kraut/Erz) ·
-      <b>Binden:</b> anschauen → Glimmer · <span class="hint">violett</span>=warten · <span class="ok">grün</span>=F halten ·
-      <span class="bad">rot</span>=Gegner · <span class="ok">grün</span>=Begleiter
+      <b>Sammeln:</b> drüberlaufen ·
+      <b>Binden:</b> anschauen · <span class="hint">violett</span> Ring = warten ·
+      <span class="ok">viele grüne Keile</span> = starker Griff · <span class="bad">rote Keile</span> = schwach ·
+      Gold-◆ du · Violett-◆ Bestie · <span class="ok">F halten</span>
     `;
   }
 

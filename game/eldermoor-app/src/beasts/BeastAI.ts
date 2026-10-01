@@ -73,6 +73,15 @@ export class BeastAI {
     // Keep interface position in sync with mesh (projectiles / capture use beast.position)
     beast.position.copy(mesh.position);
 
+    // Subtle idle breathe / sway (charm — not frozen props)
+    if (beast.state === 'wander' || beast.state === 'soften' || beast.state === 'opportunity') {
+      const t = (mesh.userData.idleT as number) ?? Math.random() * 10;
+      mesh.userData.idleT = t + dt;
+      const bob = Math.sin(mesh.userData.idleT * 2.2) * 0.03;
+      mesh.position.y = groundY + bob;
+      mesh.rotation.y += Math.sin(mesh.userData.idleT * 0.7) * 0.002;
+    }
+
     const dx = playerPos.x - mesh.position.x;
     const dz = playerPos.z - mesh.position.z;
     const distPlayer = Math.hypot(dx, dz);
@@ -249,9 +258,13 @@ export class BeastAI {
       }
       case 'B02': {
         if (hpRatio < 0.35 || hpRatio > 0.7) {
-          return { ok: false, reason: 'HP in die Mitte bringen (35–70%) — kämpfen!' };
+          return { ok: false, reason: 'Kraft dämpfen (Lebensbalken 35–70%) — kämpfen!' };
         }
+        // Lehrling-Pfad: ruhiger Eber in der Mitte = bindbar (ohne Hauer-Puzzle)
         if (!beast.partBroken && !chargeWhiffRecent) {
+          if (beast.state !== 'attack' && hpRatio >= 0.4 && hpRatio <= 0.65) {
+            return { ok: true, reason: 'Eber zögert — F halten! (Lehrling)' };
+          }
           return { ok: false, reason: 'Hauer brechen (Thorn) ODER Charge ausweichen' };
         }
         return { ok: true, reason: 'Eber wankt — F halten!' };
@@ -289,7 +302,7 @@ export class BeastAI {
       }
       case 'B09': {
         if (hpRatio < 0.3 || hpRatio > 0.75) {
-          return { ok: false, reason: 'Ehren-Duell: mittlere HP + harte Treffer' };
+          return { ok: false, reason: 'Ehren-Duell: mittlere Kraft + harte Treffer' };
         }
         if (!beast.partBroken && !chargeWhiffRecent) {
           return { ok: false, reason: 'Kamm brechen mit Thorn (4)' };
@@ -313,7 +326,7 @@ export class BeastAI {
       }
       default: {
         if (hpRatio < 0.25 || hpRatio > 0.65) {
-          return { ok: false, reason: 'HP auf 25–65% bringen' };
+          return { ok: false, reason: 'Lebensbalken auf 25–65% bringen' };
         }
         return { ok: true, reason: 'Bereit — F halten!' };
       }

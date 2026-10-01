@@ -12,6 +12,8 @@ export interface BarTarget {
   kind: BarKind;
   /** Optional name under the bar */
   label?: string;
+  /** Beast tier 1–3 as ◆ pips (visual rank, no text "level") */
+  tier?: number;
 }
 
 /**
@@ -47,10 +49,10 @@ export class BeastBars {
         this.scene.add(spr);
       }
       const ratio = Math.max(0, Math.min(1, t.hp / t.maxHp));
-      this.paint(spr, ratio, t.kind, t.label);
+      this.paint(spr, ratio, t.kind, t.label, t.tier);
       spr.position.copy(t.position);
       spr.position.y = t.height;
-      spr.scale.set(t.kind === 'ally' ? 1.35 : 1.25, t.label ? 0.42 : 0.22, 1);
+      spr.scale.set(t.kind === 'ally' ? 1.35 : 1.25, t.label || t.tier ? 0.48 : 0.22, 1);
       spr.visible = true;
     }
     for (const [id, spr] of this.bars) {
@@ -64,7 +66,7 @@ export class BeastBars {
   private makeBar() {
     const canvas = document.createElement('canvas');
     canvas.width = 160;
-    canvas.height = 40;
+    canvas.height = 48;
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
     const mat = new THREE.SpriteMaterial({
@@ -80,13 +82,14 @@ export class BeastBars {
     return spr;
   }
 
-  private paint(spr: THREE.Sprite, ratio: number, kind: BarKind, label?: string) {
+  private paint(spr: THREE.Sprite, ratio: number, kind: BarKind, label?: string, tier = 0) {
     const canvas = spr.userData.canvas as HTMLCanvasElement;
     const tex = spr.userData.tex as THREE.CanvasTexture;
     const ctx = canvas.getContext('2d')!;
-    ctx.clearRect(0, 0, 160, 40);
+    ctx.clearRect(0, 0, 160, 48);
 
-    const barY = label ? 18 : 12;
+    const hasHead = !!(label || tier);
+    const barY = hasHead ? 22 : 14;
     const barH = 12;
     // background
     ctx.fillStyle = 'rgba(10,8,18,0.85)';
@@ -101,9 +104,19 @@ export class BeastBars {
 
     if (label) {
       ctx.font = 'bold 11px Segoe UI, Arial, sans-serif';
-      ctx.textAlign = 'center';
+      ctx.textAlign = 'left';
       ctx.fillStyle = kind === 'enemy' ? '#ffb0b0' : '#b8ffd4';
-      ctx.fillText(label, 80, 12);
+      ctx.fillText(label.slice(0, 14), 8, 14);
+    }
+    // Tier diamonds ◆◆◇ — visual rank, no "Lv." text
+    if (tier > 0) {
+      const t = Math.max(1, Math.min(3, Math.floor(tier)));
+      ctx.font = 'bold 12px Segoe UI, Arial, sans-serif';
+      ctx.textAlign = 'right';
+      let diamonds = '';
+      for (let i = 0; i < 3; i++) diamonds += i < t ? '◆' : '◇';
+      ctx.fillStyle = kind === 'enemy' ? '#c9a227' : '#7dffb0';
+      ctx.fillText(diamonds, 152, 14);
     }
 
     tex.needsUpdate = true;

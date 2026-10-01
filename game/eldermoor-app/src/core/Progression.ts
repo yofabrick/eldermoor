@@ -11,7 +11,8 @@ export class WandProgression {
     return 1 + this.tier * 0.12;
   }
   get catchToolTier() {
-    return 0.95 + this.tier * 0.12;
+    // Never penalize starter wand (was 0.95 → felt like fake odds)
+    return 1.0 + this.tier * 0.1;
   }
 
   /** Costs: essence + ingot */

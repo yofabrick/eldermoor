@@ -4,6 +4,8 @@ export interface WorldEventResult {
   toast?: string;
   /** Caller builds a tall black mesh at this position (once). */
   spawnWatcher?: THREE.Vector3;
+  /** Spawn a pamphlet prop near the player (heat foreshadow). */
+  spawnPamphlet?: boolean;
   /** Damage applied to the player (e.g. night crawler ambush). */
   damage?: number;
 }
@@ -14,6 +16,8 @@ export interface WorldEventResult {
  */
 export class WorldEvents {
   private watcherSpawned: boolean;
+  /** Early heat pamphlet (before full Watcher stage). */
+  private pamphletDone = false;
   /** Seconds until the next night-crawler roll while night. */
   private crawlerCooldown: number;
 
@@ -47,17 +51,28 @@ export class WorldEvents {
 
     if (watcherSeen) this.watcherSpawned = true;
 
-    // First time heat hits Watchers stage: ridge spawn ~25u from player
+    // Early pamphlet foreshadow (heat 8+) — once, world prop + toast
+    if (heat >= 8 && !this.pamphletDone) {
+      this.pamphletDone = true;
+      result.spawnPamphlet = true;
+      if (!result.toast) {
+        result.toast =
+          'Ein Flugblatt am Wind: „Unlisted, die zu laut werden, finden Zuschauer.“';
+      }
+    }
+
+    // First time heat hits Watchers stage: ridge spawn NW of player (skyline)
     if (heat >= 25 && !this.watcherSpawned) {
       this.watcherSpawned = true;
-      const angle = Math.random() * Math.PI * 2;
-      const dist = 25;
+      // Prefer fixed ridge direction so silhouette is learnable
+      const dist = 22;
+      const angle = -Math.PI * 0.65; // NW-ish from player
       result.spawnWatcher = new THREE.Vector3(
         playerPos.x + Math.cos(angle) * dist,
-        (playerPos.y ?? 0) + 3.5, // ridge height hint; caller may snap to terrain
+        0,
         playerPos.z + Math.sin(angle) * dist,
       );
-      result.toast = 'A silhouette on the ridge… a Watcher.';
+      result.toast = 'Eine Silhouette am Grat… ein Beobachter des Rates.';
     }
 
     // Night crawler ambush — rare, cooldown-gated, no mesh AI
@@ -68,7 +83,7 @@ export class WorldEvents {
         if (Math.random() < 0.4) {
           result.damage = 5;
           // Do not overwrite a first-sight Watcher toast
-          if (!result.toast) result.toast = 'Night crawler!';
+          if (!result.toast) result.toast = 'Nachtkriecher!';
         }
       }
     } else {

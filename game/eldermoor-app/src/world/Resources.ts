@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Inventory, ResourceNode } from '../core/types';
+import { INVENTORY_CAPS } from '../core/types';
 import { RESOURCE_INFO } from './ResourceLabels';
 
 function mulberry32(a: number) {
@@ -11,6 +12,18 @@ function mulberry32(a: number) {
   };
 }
 
+const PICKUP_RADIUS = 1.85;
+const AMOUNTS = { wood: 2, stone: 2, herb: 2, ore: 1 } as const;
+
+export function canCarry(inv: Inventory, kind: ResourceNode['kind'], amount: number): boolean {
+  const cap = INVENTORY_CAPS[kind];
+  return inv[kind] + amount <= cap;
+}
+
+export function isStackFull(inv: Inventory, kind: ResourceNode['kind']): boolean {
+  return inv[kind] >= INVENTORY_CAPS[kind];
+}
+
 /** Distinct, readable resource piles with ground rings */
 export function spawnResources(scene: THREE.Scene, count = 55): ResourceNode[] {
   const rng = mulberry32(99);
@@ -18,7 +31,6 @@ export function spawnResources(scene: THREE.Scene, count = 55): ResourceNode[] {
   const kinds: ResourceNode['kind'][] = ['wood', 'stone', 'herb', 'ore'];
   const colors = { wood: 0x8b5a2b, stone: 0x8a909c, herb: 0x3dcc6e, ore: 0x6a8ab8 };
 
-  // Cluster some resources near spawn (origin-ish) so the first goal is obvious
   const nearSpawn: { kind: ResourceNode['kind']; x: number; z: number }[] = [
     { kind: 'wood', x: 3, z: -2 },
     { kind: 'wood', x: 5, z: 1 },
@@ -30,7 +42,6 @@ export function spawnResources(scene: THREE.Scene, count = 55): ResourceNode[] {
 
   const makeNode = (kind: ResourceNode['kind'], x: number, z: number, id: string) => {
     const group = new THREE.Group();
-    // Ground ring — color coded
     const ringCol =
       kind === 'wood' ? 0xc4a574 : kind === 'stone' ? 0x8899aa : kind === 'herb' ? 0x3dcc6e : 0x6a8ab8;
     const ring = new THREE.Mesh(
@@ -108,8 +119,8 @@ export function spawnResources(scene: THREE.Scene, count = 55): ResourceNode[] {
       kind,
       position: group.position.clone(),
       mesh: group,
-      remaining: 4 + Math.floor(rng() * 2),
-      max: 5,
+      remaining: 1, // one walk-over pickup per pile
+      max: 1,
       respawn: 0,
     } satisfies ResourceNode;
   };
@@ -128,66 +139,98 @@ export function spawnResources(scene: THREE.Scene, count = 55): ResourceNode[] {
   return nodes;
 }
 
+export type GatherResult = {
+  node: ResourceNode | null;
+  gained: string | null;
+  full?: boolean;
+  kind?: ResourceNode['kind'];
+};
+
+/**
+ * Walk-over pickup: stepping on a pile collects it instantly,
+ * unless that resource stack is at cap. No key press required.
+ */
 export function tryGather(
   nodes: ResourceNode[],
   playerPos: THREE.Vector3,
   inv: Inventory,
-  dt: number,
-  gathering: boolean,
-): { node: ResourceNode | null; gained: string | null; progress?: number } {
-  let nearest: ResourceNode | null = null;
-  let best = 2.6;
+  _dt: number,
+): GatherResult {
+  // Respawn depleted piles
   for (const n of nodes) {
     if (n.remaining <= 0) {
-      n.respawn -= dt;
+      n.respawn -= _dt;
       if (n.respawn <= 0) {
         n.remaining = n.max;
         n.mesh.visible = true;
       }
-      continue;
     }
+  }
+
+  // All piles within radius (can pick several if overlapping)
+  let nearest: ResourceNode | null = null;
+  let best = PICKUP_RADIUS;
+  let anyFullNear: ResourceNode | null = null;
+
+  for (const n of nodes) {
+    if (n.remaining <= 0) continue;
     const d = playerPos.distanceTo(n.position);
+    if (d >= PICKUP_RADIUS) continue;
+
     if (d < best) {
       best = d;
       nearest = n;
     }
-  }
-  if (!nearest) return { node: null, gained: null };
-  if (!gathering) {
+
+    const amt = AMOUNTS[n.kind];
+    if (!canCarry(inv, n.kind, amt)) {
+      anyFullNear = n;
+      continue;
+    }
+
+    // Instant pickup
+    n.remaining = 0;
+    n.respawn = 18;
+    n.mesh.visible = false;
+    inv[n.kind] += amt;
     return {
-      node: nearest,
+      node: n,
+      gained: `${RESOURCE_INFO[n.kind].de} +${amt}`,
+      kind: n.kind,
+    };
+  }
+
+  if (anyFullNear && !nearest) {
+    // Only full piles nearby
+    return {
+      node: anyFullNear,
       gained: null,
-      progress: 1 - nearest.remaining / nearest.max,
+      full: true,
+      kind: anyFullNear.kind,
     };
   }
-  // ~1.2s hold to clear a full node
-  nearest.remaining -= 4.2 * dt;
-  if (nearest.remaining <= 0) {
-    nearest.remaining = 0;
-    nearest.respawn = 22;
-    nearest.mesh.visible = false;
-    const amounts = { wood: 2, stone: 2, herb: 2, ore: 1 } as const;
-    const amt = amounts[nearest.kind];
-    inv[nearest.kind] += amt;
-    return {
-      node: nearest,
-      gained: `${RESOURCE_INFO[nearest.kind].de} +${amt}`,
-      progress: 1,
-    };
+
+  // Standing on a full stack of the nearest kind
+  if (nearest && !canCarry(inv, nearest.kind, AMOUNTS[nearest.kind])) {
+    return { node: nearest, gained: null, full: true, kind: nearest.kind };
   }
-  return {
-    node: nearest,
-    gained: null,
-    progress: 1 - nearest.remaining / nearest.max,
-  };
+
+  return { node: nearest, gained: null };
 }
 
-export function gatherPrompt(node: ResourceNode | null, gathering: boolean, progress = 0): string {
+export function gatherPrompt(
+  node: ResourceNode | null,
+  _gathering: boolean,
+  _progress = 0,
+  full = false,
+  kind?: ResourceNode['kind'],
+): string {
+  if (full && kind) {
+    const info = RESOURCE_INFO[kind];
+    const cap = INVENTORY_CAPS[kind];
+    return `Inventar voll: ${info.de} (max ${cap}) — verbrauchen/bauen zuerst`;
+  }
   if (!node) return '';
   const info = RESOURCE_INFO[node.kind];
-  if (gathering) {
-    const pct = Math.floor(progress * 100);
-    return `Sammle ${info.de}… ${pct}%  —  braucht: ${info.use}`;
-  }
-  return `[E halten] ${info.de}  ·  ${info.look}  ·  für: ${info.use}`;
+  return `Darüberlaufen: ${info.de} aufsammeln · ${info.use}`;
 }
