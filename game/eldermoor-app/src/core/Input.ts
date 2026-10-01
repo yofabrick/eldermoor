@@ -12,7 +12,9 @@ export class Input {
       const k = e.code;
       if (!this.keys.has(k)) this.justPressed.add(k);
       this.keys.add(k);
-      if (['Space', 'Tab'].includes(k)) e.preventDefault();
+      if (['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(k)) {
+        e.preventDefault();
+      }
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     target.addEventListener('click', () => {

@@ -13,12 +13,9 @@ export default defineConfig({
       // logic. Counting it would make the number meaningless.
       exclude: ['**/*.test.ts', '**/node_modules/**', 'dist/**', 'coverage/**'],
       thresholds: {
-        // Phase 0 baseline, measured 2026-10-01 with `npm run test:coverage`:
-        // lines 6.22% (568/9129), statements 6.22% (568/9129),
-        // functions 43.10% (50/116), branches 62.14% (87/140).
-        // Branch % is inflated: v8 reports a single synthetic branch on many
-        // untested files. Line coverage of logic modules is the number to raise.
-        // Thresholds stay at 0 until Phase 2 locks a logic-coverage floor.
+        // Phase 0 unit baseline was lines 6.22% (568/9129). The small unit
+        // files were removed in favour of browser end-to-end (`npm test`).
+        // This v8 number is no longer the gate. Thresholds stay at 0.
         statements: 0,
         branches: 0,
         functions: 0,
