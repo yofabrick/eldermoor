@@ -1,5 +1,7 @@
 /** Canvas minimap — top-down blips for player, base, POIs, beasts */
 
+import { requireCanvas2d } from '../core/util';
+
 export class Minimap {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
@@ -28,7 +30,7 @@ export class Minimap {
       document.getElementById('ui')?.appendChild(el);
     }
     this.canvas = el;
-    this.ctx = el.getContext('2d')!;
+    this.ctx = requireCanvas2d(el);
   }
 
   show(v: boolean) {
@@ -88,9 +90,9 @@ export class Minimap {
     for (const w of opts.wild) {
       const m = toMap(w.x, w.z);
       if (m.x < 4 || m.x > s - 4 || m.y < 4 || m.y > s - 4) continue;
-      ctx.fillStyle = w.elite ? '#ff6a00' : '#e85d5d';
+      ctx.fillStyle = w.elite === true ? '#ff6a00' : '#e85d5d';
       ctx.beginPath();
-      ctx.arc(m.x, m.y, w.elite ? 3.5 : 2, 0, Math.PI * 2);
+      ctx.arc(m.x, m.y, w.elite === true ? 3.5 : 2, 0, Math.PI * 2);
       ctx.fill();
     }
 

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { OwnedBeast, Station } from '../core/types';
 import { speciesDef } from '../data/species';
 import { createBeastMesh } from '../beasts/BeastFactory';
-import { at } from '../core/util';
+import { at, hasText, requireCanvas2d } from '../core/util';
 
 /**
  * Visible workers at lumber/smelter — Demo Law #2: beast produces while player walks away.
@@ -32,7 +32,7 @@ export class StationWorkers {
     const want = new Set<string>();
 
     for (const st of stations) {
-      if (!st.assignedBeastUid) continue;
+      if (!hasText(st.assignedBeastUid)) continue;
       if (st.kind !== 'lumber' && st.kind !== 'smelter') continue;
       const beast = owned.find((o) => o.uid === st.assignedBeastUid);
       if (!beast || beast.mood < 10) continue;
@@ -166,7 +166,7 @@ function makeWorkLabel(name: string): THREE.Sprite {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
   canvas.height = 64;
-  const ctx = canvas.getContext('2d')!;
+  const ctx = requireCanvas2d(canvas);
   ctx.clearRect(0, 0, 256, 64);
   ctx.fillStyle = 'rgba(10,14,12,0.85)';
   ctx.beginPath();

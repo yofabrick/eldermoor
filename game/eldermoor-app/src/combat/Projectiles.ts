@@ -69,9 +69,9 @@ export class ProjectileSystem {
     if (dir.lengthSq() < 1e-8) dir.set(0, 0, -1);
     else dir.normalize();
 
-    const hitRadius = meta.cone ? HIT_RADIUS * 1.6 : HIT_RADIUS;
+    const hitRadius = meta.cone === true ? HIT_RADIUS * 1.6 : HIT_RADIUS;
     // Thorn cone is short-range; full 2s lifetime only for long bolts
-    const life = meta.cone ? Math.min(LIFETIME, 0.45) : LIFETIME;
+    const life = meta.cone === true ? Math.min(LIFETIME, 0.45) : LIFETIME;
 
     this.projectiles.push({
       mesh,

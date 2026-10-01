@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { hasText } from '../core/util';
 
 export interface WorldEventResult {
   toast?: string;
@@ -55,7 +56,7 @@ export class WorldEvents {
     if (heat >= 8 && !this.pamphletDone) {
       this.pamphletDone = true;
       result.spawnPamphlet = true;
-      if (!result.toast) {
+      if (!hasText(result.toast)) {
         result.toast = 'Ein Flugblatt am Wind: „Unlisted, die zu laut werden, finden Zuschauer.“';
       }
     }
@@ -82,7 +83,7 @@ export class WorldEvents {
         if (Math.random() < 0.4) {
           result.damage = 5;
           // Do not overwrite a first-sight Watcher toast
-          if (!result.toast) result.toast = 'Nachtkriecher!';
+          if (!hasText(result.toast)) result.toast = 'Nachtkriecher!';
         }
       }
     } else {

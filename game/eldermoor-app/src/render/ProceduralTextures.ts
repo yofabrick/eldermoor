@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { requireCanvas2d } from '../core/util';
 
 /** Canvas-forged seamless-ish textures (Claude-of-Duty spirit: no image files). */
 
@@ -48,7 +49,7 @@ function scaleCh(data: Uint8ClampedArray, index: number, factor: number): void {
 export function makeGrassTexture(size = 256): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = c.height = size;
-  const ctx = c.getContext('2d')!;
+  const ctx = requireCanvas2d(c);
   const img = ctx.createImageData(size, size);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -80,7 +81,7 @@ export function makeGrassTexture(size = 256): THREE.CanvasTexture {
 export function makeBarkTexture(size = 128): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = c.height = size;
-  const ctx = c.getContext('2d')!;
+  const ctx = requireCanvas2d(c);
   const img = ctx.createImageData(size, size);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -113,7 +114,7 @@ export function makeBarkTexture(size = 128): THREE.CanvasTexture {
 export function makeLeafTexture(size = 128): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = c.height = size;
-  const ctx = c.getContext('2d')!;
+  const ctx = requireCanvas2d(c);
   const img = ctx.createImageData(size, size);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -149,7 +150,7 @@ export function makeLeafTexture(size = 128): THREE.CanvasTexture {
 export function makeStoneTexture(size = 128): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = c.height = size;
-  const ctx = c.getContext('2d')!;
+  const ctx = requireCanvas2d(c);
   const img = ctx.createImageData(size, size);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -185,7 +186,7 @@ export function makeStoneTexture(size = 128): THREE.CanvasTexture {
 export function makeMossTexture(size = 128): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = c.height = size;
-  const ctx = c.getContext('2d')!;
+  const ctx = requireCanvas2d(c);
   const img = ctx.createImageData(size, size);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -219,7 +220,7 @@ export function makeMossTexture(size = 128): THREE.CanvasTexture {
 export function makeDirtPathTexture(size = 128): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = c.height = size;
-  const ctx = c.getContext('2d')!;
+  const ctx = requireCanvas2d(c);
   const img = ctx.createImageData(size, size);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {

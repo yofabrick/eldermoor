@@ -6,6 +6,7 @@ import {
   makeStoneTexture,
 } from '../render/ProceduralTextures';
 import { createBush, createRock, createTree } from './TreeFactory';
+import { requireCanvas2d } from '../core/util';
 
 /** Seeded mulberry32 PRNG for deterministic world layout. */
 function mulberry32(seed: number): () => number {
@@ -588,7 +589,7 @@ function makeWorldLabel(text: string, stroke: string, fill: string): THREE.Sprit
   const canvas = document.createElement('canvas');
   canvas.width = 512;
   canvas.height = 96;
-  const ctx = canvas.getContext('2d')!;
+  const ctx = requireCanvas2d(canvas);
   ctx.clearRect(0, 0, 512, 96);
   ctx.fillStyle = 'rgba(12,10,18,0.78)';
   const rr = 14;

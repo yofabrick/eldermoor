@@ -18,6 +18,7 @@ export default tseslint.config(
     },
     rules: {
       // --- correctness -------------------------------------------------
+      '@typescript-eslint/strict-boolean-expressions': 'error',
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unnecessary-condition': [
         'error',
@@ -34,11 +35,7 @@ export default tseslint.config(
 
       // --- maintainability --------------------------------------------
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      // TODO(phase-1): 60 remaining assertions are almost all DOM lookups
-      // (`document.getElementById(...)!`, `getContext('2d')!`). They are correct
-      // but should become explicit `requireElement()` helpers. Warn-level so they
-      // stay visible instead of being silently disabled.
-      '@typescript-eslint/no-non-null-assertion': 'warn',
+      '@typescript-eslint/no-non-null-assertion': 'error',
       '@typescript-eslint/consistent-type-imports': [
         'error',
         { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
@@ -54,7 +51,6 @@ export default tseslint.config(
     // Tests may lean on non-null assertions for compact fixtures.
     files: ['src/**/*.test.ts'],
     rules: {
-      '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-unnecessary-condition': 'off',
     },
   },

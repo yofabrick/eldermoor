@@ -1,22 +1,23 @@
 import type { Inventory, OwnedBeast, PathFlag } from '../core/types';
 import { speciesDef } from '../data/species';
+import { hasText, nonzero, requireElement } from '../core/util';
 
 export class Hud {
   private toastTimer = 0;
-  private toastEl = document.getElementById('toast')!;
-  private invEl = document.getElementById('inv')!;
-  private partyEl = document.getElementById('party')!;
-  private promptEl = document.getElementById('prompt')!;
-  private bondRing = document.getElementById('bond-ring')!;
-  private bondLabel = document.getElementById('bond-label')!;
-  private hpBar = document.getElementById('hp-bar')!;
-  private manaBar = document.getElementById('mana-bar')!;
-  private strainBar = document.getElementById('strain-bar')!;
-  private heatEye = document.getElementById('heat-eye')!;
-  private heatNum = document.getElementById('heat-num')!;
-  private journal = document.getElementById('journal-text')!;
-  private objectiveEl = document.getElementById('objective-text')!;
-  private compassEl = document.getElementById('compass-hint')!;
+  private toastEl = requireElement('toast');
+  private invEl = requireElement('inv');
+  private partyEl = requireElement('party');
+  private promptEl = requireElement('prompt');
+  private bondRing = requireElement('bond-ring');
+  private bondLabel = requireElement('bond-label');
+  private hpBar = requireElement('hp-bar');
+  private manaBar = requireElement('mana-bar');
+  private strainBar = requireElement('strain-bar');
+  private heatEye = requireElement('heat-eye');
+  private heatNum = requireElement('heat-num');
+  private journal = requireElement('journal-text');
+  private objectiveEl = requireElement('objective-text');
+  private compassEl = requireElement('compass-hint');
 
   showGameUi(show: boolean) {
     for (const id of [
@@ -29,10 +30,10 @@ export class Hud {
       'crosshair',
       'objective-bar',
     ]) {
-      const el = document.getElementById(id)!;
+      const el = requireElement(id);
       el.style.display = show ? '' : 'none';
     }
-    document.getElementById('title-screen')!.style.display = show ? 'none' : 'flex';
+    requireElement('title-screen').style.display = show ? 'none' : 'flex';
   }
 
   toast(msg: string, seconds = 2.8) {
@@ -86,8 +87,8 @@ export class Hud {
       owned
         .map((b) => {
           const sp = speciesDef(b.speciesId);
-          const role = b.fieldSlot ? '⚔ KÄMPFT MIT DIR' : b.job ? `🔧 ${b.job}` : 'idle';
-          const bond = b.bondLevel ? ` · Band ${b.bondLevel}` : '';
+          const role = b.fieldSlot ? '⚔ KÄMPFT MIT DIR' : hasText(b.job) ? `🔧 ${b.job}` : 'idle';
+          const bond = nonzero(b.bondLevel) ? ` · Band ${b.bondLevel}` : '';
           const cls = b.fieldSlot ? 'pet ally-pet' : 'pet';
           return `<div class="${cls}"><div class="name">${b.name}</div><div class="job">${sp.name} · ${role}${bond}</div></div>`;
         })

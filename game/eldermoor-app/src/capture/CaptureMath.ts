@@ -62,7 +62,7 @@ export function catchChance(opts: {
   // If player earned a soften window, floor so it never feels "always fail"
   const floor = softenQuality >= 1 ? 0.28 : 0.08;
   let p = clamp(raw, floor, 0.92);
-  if (tutorialBoost) p = Math.max(p, 0.88);
+  if (tutorialBoost === true) p = Math.max(p, 0.88);
   return p;
 }
 

@@ -57,8 +57,12 @@ describe('WorldEvents pamphlet + Watcher (shipped Demo Law #3)', () => {
     // heat 8 first consumes pamphlet
     ev.update(0.016, 8, pos, null, false, false);
     const r = ev.update(0.016, 25, pos, null, false, false);
-    expect(r.spawnWatcher).toBeTruthy();
-    expect(r.spawnWatcher!.distanceTo(pos)).toBeGreaterThan(15);
+    const watcher = r.spawnWatcher;
+    expect(watcher).toBeInstanceOf(THREE.Vector3);
+    if (!(watcher instanceof THREE.Vector3)) {
+      throw new Error('expected watcher spawn');
+    }
+    expect(watcher.distanceTo(pos)).toBeGreaterThan(15);
     expect(r.toast).toMatch(/Beobachter|Silhouette/i);
     // no second watcher
     const r2 = ev.update(0.016, 50, pos, null, false, false);

@@ -3,6 +3,8 @@
  * Dark fantasy gold/cyan; red pulse + "F HALTEN!" when not holding.
  */
 
+import { requireChild } from '../core/util';
+
 export class BindChannelBar {
   private root: HTMLDivElement;
   private titleEl: HTMLElement;
@@ -267,10 +269,10 @@ export class BindChannelBar {
       document.getElementById('ui')?.appendChild(el);
     }
     this.root = el;
-    this.titleEl = el.querySelector('.bcb-name')!;
-    this.fillEl = el.querySelector('.bcb-fill')!;
-    this.holdEl = el.querySelector('.bcb-hold')!;
-    this.pctEl = el.querySelector('.bcb-pct')!;
+    this.titleEl = requireChild(el, '.bcb-name');
+    this.fillEl = requireChild(el, '.bcb-fill');
+    this.holdEl = requireChild(el, '.bcb-hold');
+    this.pctEl = requireChild(el, '.bcb-pct');
     this.chanceEl = el.querySelector('.bcb-chance-pips');
   }
 
