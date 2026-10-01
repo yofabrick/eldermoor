@@ -23,8 +23,9 @@ export class AudioBus {
       if (ctx.state === 'suspended') await ctx.resume();
       this.ensureAmbient();
       this.ensureHum();
-    } catch {
-      /* blocked */
+    } catch (err) {
+      // Autoplay policy / no AudioContext: audio is optional, never fatal.
+      console.warn('AudioBus: init failed', err);
     }
   }
 
@@ -83,8 +84,9 @@ export class AudioBus {
       if (this.ambGain && this.ctx) {
         this.ambGain.gain.setTargetAtTime(0.012 + opts.night * 0.02, this.ctx.currentTime, 0.2);
       }
-    } catch {
-      /* */
+    } catch (err) {
+      // Ambient bed is non-critical; gameplay audio continues without it.
+      console.warn('AudioBus: ambient update failed', err);
     }
     if (opts.footstep && this.footCd <= 0) {
       this.playFootstep(opts.sprint);
@@ -256,9 +258,12 @@ export class AudioBus {
   private ensureCtx(): AudioContext | null {
     try {
       if (!this.ctx) {
-        const AC =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        // Safari < 14 only exposes the vendor-prefixed constructor.
+        const win = window as unknown as {
+          AudioContext?: typeof AudioContext;
+          webkitAudioContext?: typeof AudioContext;
+        };
+        const AC = win.AudioContext ?? win.webkitAudioContext;
         if (!AC) return null;
         this.ctx = new AC();
         this.master = this.ctx.createGain();
@@ -303,15 +308,17 @@ export class AudioBus {
       osc.start(t0);
       osc.stop(t0 + opts.dur + 0.02);
       osc.onended = () => {
+        // A node may already be disconnected if the context closed mid-play.
         try {
           osc.disconnect();
           gain.disconnect();
-        } catch {
-          /* */
+        } catch (err) {
+          console.warn('AudioBus: disconnect failed', err);
         }
       };
-    } catch {
-      /* */
+    } catch (err) {
+      // Voice budget exhausted or context lost — dropping one sound is acceptable.
+      console.warn('AudioBus: play failed', err);
     }
   }
 }

@@ -88,7 +88,7 @@ export class BeastBars {
     const ctx = canvas.getContext('2d')!;
     ctx.clearRect(0, 0, 160, 48);
 
-    const hasHead = !!(label || tier);
+    const hasHead = Boolean(label || tier);
     const barY = hasHead ? 22 : 14;
     const barH = 12;
     // background

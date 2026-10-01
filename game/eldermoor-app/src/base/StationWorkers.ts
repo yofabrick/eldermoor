@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import type { OwnedBeast, Station } from '../core/types';
-import { SPECIES } from '../data/species';
+import { speciesDef } from '../data/species';
 import { createBeastMesh } from '../beasts/BeastFactory';
+import { at } from '../core/util';
 
 /**
  * Visible workers at lumber/smelter — Demo Law #2: beast produces while player walks away.
@@ -60,8 +61,8 @@ export class StationWorkers {
         this.byUid.set(beast.uid, mesh);
       }
 
-      const def = SPECIES[beast.speciesId];
-      const y = (def?.scale ?? 0.6) * 0.5;
+      const def = speciesDef(beast.speciesId);
+      const y = def.scale * 0.5;
       // Stand beside station, not inside mesh
       const side = st.kind === 'lumber' ? 1.4 : -1.4;
       mesh.position.set(st.position.x + side, y, st.position.z + 0.6);
@@ -82,7 +83,7 @@ export class StationWorkers {
     this.time += dt;
     this.chopCd = Math.max(0, this.chopCd - dt);
     for (const mesh of this.byUid.values()) {
-      const baseY = (mesh.userData.baseY as number) ?? 0.4;
+      const baseY = (mesh.userData.baseY as number | undefined) ?? 0.4;
       // Ease-in wind-up, hard strike (not plain sin bob)
       const phase = this.time * 4.2;
       const cycle = ((phase % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
@@ -127,7 +128,8 @@ export class StationWorkers {
     }
     // Age chips
     for (let i = this.chips.length - 1; i >= 0; i--) {
-      const c = this.chips[i];
+      const c = at(this.chips, i);
+      if (c === undefined) continue;
       c.life -= dt;
       c.mesh.position.addScaledVector(c.vel, dt);
       c.vel.y -= 6 * dt;
@@ -150,7 +152,11 @@ export class StationWorkers {
     this.scene.add(mesh);
     this.chips.push({
       mesh,
-      vel: new THREE.Vector3((Math.random() - 0.5) * 2.2, 2 + Math.random() * 1.5, (Math.random() - 0.5) * 2.2),
+      vel: new THREE.Vector3(
+        (Math.random() - 0.5) * 2.2,
+        2 + Math.random() * 1.5,
+        (Math.random() - 0.5) * 2.2,
+      ),
       life: 0.55,
     });
   }

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { WildBeast } from '../core/types';
+import { at } from '../core/util';
 
 export type GlimmerMode = 'off' | 'focus' | 'ready' | 'channeling' | 'success';
 
@@ -244,8 +245,7 @@ export class GlimmerLink {
       shell.scale.copy(this.beam.scale);
       shell.quaternion.copy(this.beam.quaternion);
       const sm = shell.material as THREE.MeshBasicMaterial;
-      sm.opacity =
-        this.mode === 'channeling' ? 0.28 : this.mode === 'ready' ? 0.2 : 0.12;
+      sm.opacity = this.mode === 'channeling' ? 0.28 : this.mode === 'ready' ? 0.2 : 0.12;
     }
 
     this.ring.position.set(to.x, 0.06, to.z);
@@ -264,7 +264,9 @@ export class GlimmerLink {
     const notReady = this.mode === 'focus';
     const lit = notReady ? 0 : Math.max(1, Math.round(this.fitChance * 5));
     for (let i = 0; i < this.fitSegs.length; i++) {
-      const mat = this.fitSegs[i].material as THREE.MeshBasicMaterial;
+      const seg = at(this.fitSegs, i);
+      if (seg === undefined) continue;
+      const mat = seg.material as THREE.MeshBasicMaterial;
       const on = i < lit;
       if (notReady) {
         mat.color.setHex(0x5544aa);

@@ -51,7 +51,8 @@ export type JobId = 'lumber' | 'haul' | 'smelt' | 'scout' | 'idle' | 'guard';
 
 export type CaptureMethod = 'snare' | 'bait' | 'bond';
 
-export type BeastAiState = 'wander' | 'aggro' | 'attack' | 'flee' | 'soften' | 'opportunity' | 'captured';
+export type BeastAiState =
+  'wander' | 'aggro' | 'attack' | 'flee' | 'soften' | 'opportunity' | 'captured';
 
 export interface WildBeast {
   id: string;

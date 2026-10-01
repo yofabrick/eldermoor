@@ -17,7 +17,7 @@ export function loadGame(): GameSave | null {
 }
 
 export function hasSave(): boolean {
-  return !!localStorage.getItem(KEY);
+  return Boolean(localStorage.getItem(KEY));
 }
 
 export function clearSave(): void {

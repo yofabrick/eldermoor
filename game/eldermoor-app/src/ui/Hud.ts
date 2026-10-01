@@ -1,5 +1,5 @@
 import type { Inventory, OwnedBeast, PathFlag } from '../core/types';
-import { SPECIES } from '../data/species';
+import { speciesDef } from '../data/species';
 
 export class Hud {
   private toastTimer = 0;
@@ -19,7 +19,16 @@ export class Hud {
   private compassEl = document.getElementById('compass-hint')!;
 
   showGameUi(show: boolean) {
-    for (const id of ['hud-top', 'inv', 'party', 'spells', 'menu', 'journal', 'crosshair', 'objective-bar']) {
+    for (const id of [
+      'hud-top',
+      'inv',
+      'party',
+      'spells',
+      'menu',
+      'journal',
+      'crosshair',
+      'objective-bar',
+    ]) {
       const el = document.getElementById(id)!;
       el.style.display = show ? '' : 'none';
     }
@@ -76,11 +85,11 @@ export class Hud {
       `<div class="party-legend"><span class="ally">■ Begleiter (grün)</span> · <span class="enemy">■ Gegner (rot)</span></div>` +
       owned
         .map((b) => {
-          const sp = SPECIES[b.speciesId];
+          const sp = speciesDef(b.speciesId);
           const role = b.fieldSlot ? '⚔ KÄMPFT MIT DIR' : b.job ? `🔧 ${b.job}` : 'idle';
           const bond = b.bondLevel ? ` · Band ${b.bondLevel}` : '';
           const cls = b.fieldSlot ? 'pet ally-pet' : 'pet';
-          return `<div class="${cls}"><div class="name">${b.name}</div><div class="job">${sp?.name ?? b.speciesId} · ${role}${bond}</div></div>`;
+          return `<div class="${cls}"><div class="name">${b.name}</div><div class="job">${sp.name} · ${role}${bond}</div></div>`;
         })
         .join('');
   }
@@ -101,12 +110,9 @@ export class Hud {
     // Ring pulse when bind-relevant; label only if short prompt needed
     this.bondRing.classList.toggle('show', show);
     this.bondRing.classList.toggle('channel', channeling);
-    this.bondLabel.classList.toggle('show', !!label);
+    this.bondLabel.classList.toggle('show', Boolean(label));
     this.bondLabel.textContent = label;
-    this.bondLabel.classList.toggle(
-      'focus-dim',
-      label.includes('noch nicht') || label.length > 8,
-    );
+    this.bondLabel.classList.toggle('focus-dim', label.includes('noch nicht') || label.length > 8);
     this.bondLabel.classList.toggle('focus-ready', channeling || label === 'F');
   }
 

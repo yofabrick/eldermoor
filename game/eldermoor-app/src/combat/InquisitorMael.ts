@@ -45,14 +45,23 @@ export class InquisitorMael {
     mask.position.y = 1.95;
     const wand = new THREE.Mesh(
       new THREE.CylinderGeometry(0.025, 0.035, 0.9, 6),
-      new THREE.MeshStandardMaterial({ color: 0xe8d48b, emissive: 0xc9a227, emissiveIntensity: 0.5 }),
+      new THREE.MeshStandardMaterial({
+        color: 0xe8d48b,
+        emissive: 0xc9a227,
+        emissiveIntensity: 0.5,
+      }),
     );
     wand.position.set(0.5, 1.2, 0.15);
     wand.rotation.z = -0.4;
     // Authority halo
     const halo = new THREE.Mesh(
       new THREE.RingGeometry(0.7, 0.85, 24),
-      new THREE.MeshBasicMaterial({ color: 0xc9a227, transparent: true, opacity: 0.4, side: THREE.DoubleSide }),
+      new THREE.MeshBasicMaterial({
+        color: 0xc9a227,
+        transparent: true,
+        opacity: 0.4,
+        side: THREE.DoubleSide,
+      }),
     );
     halo.rotation.x = -Math.PI / 2;
     halo.position.y = 0.05;
@@ -144,7 +153,11 @@ export class InquisitorMael {
     if (this.attackCd <= 0 && dist < 16) {
       this.attackCd = 1.35;
       const origin = this.mesh.position.clone().add(new THREE.Vector3(0, 1.4, 0));
-      const dir = playerPos.clone().add(new THREE.Vector3(0, 1, 0)).sub(origin).normalize();
+      const dir = playerPos
+        .clone()
+        .add(new THREE.Vector3(0, 1, 0))
+        .sub(origin)
+        .normalize();
       onProjectile(origin, dir, 11);
     }
 
@@ -155,8 +168,10 @@ export class InquisitorMael {
       onToast('Mael brands the air — Ward up!');
     }
 
-    // Low HP retreat (first meeting survival)
-    if (this.hp < this.maxHp * 0.22 && this.phase === 'duel') {
+    // Low HP retreat (first meeting survival).
+    // Earlier returns already excluded absent/arrive/retreat/defeated, so the
+    // duel phase is implied here.
+    if (this.hp < this.maxHp * 0.22) {
       this.phase = 'retreat';
       this.retreatTimer = 2.2;
       onToast('Mael: "Adequate. File updated."');
@@ -178,7 +193,8 @@ export class InquisitorMael {
     if (coat instanceof THREE.Mesh && coat.material instanceof THREE.MeshStandardMaterial) {
       coat.material.emissiveIntensity = 0.8;
       setTimeout(() => {
-        if (coat.material instanceof THREE.MeshStandardMaterial) coat.material.emissiveIntensity = 0.12;
+        if (coat.material instanceof THREE.MeshStandardMaterial)
+          coat.material.emissiveIntensity = 0.12;
       }, 100);
     }
     return false;
@@ -188,8 +204,16 @@ export class InquisitorMael {
     return this.mesh.position;
   }
 
-  asTarget(): { id: string; mesh: THREE.Object3D; position: THREE.Vector3; hp: number; maxHp: number; state: string } | null {
-    if (!this.spawned || this.phase === 'defeated' || this.phase === 'absent' || !this.mesh.visible) return null;
+  asTarget(): {
+    id: string;
+    mesh: THREE.Object3D;
+    position: THREE.Vector3;
+    hp: number;
+    maxHp: number;
+    state: string;
+  } | null {
+    if (!this.spawned || this.phase === 'defeated' || this.phase === 'absent' || !this.mesh.visible)
+      return null;
     return {
       id: 'mael',
       mesh: this.mesh,

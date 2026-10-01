@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { OwnedBeast, WildBeast } from '../core/types';
-import { SPECIES } from '../data/species';
+import { speciesDef } from '../data/species';
 import { beastPowerMul } from '../core/Progression';
 import { createBeastMesh } from './BeastFactory';
 import { applyDamageToBeast } from './BeastAI';
@@ -87,11 +87,13 @@ export class FieldParty {
     onHit: (beast: WildBeast, dmg: number) => void,
     owned: OwnedBeast[] = [],
   ) {
-    const right = new THREE.Vector3().crossVectors(playerForward, new THREE.Vector3(0, 1, 0)).normalize();
+    const right = new THREE.Vector3()
+      .crossVectors(playerForward, new THREE.Vector3(0, 1, 0))
+      .normalize();
 
     for (const c of this.companions) {
       c.attackCd = Math.max(0, c.attackCd - dt);
-      const def = SPECIES[c.speciesId] ?? SPECIES.B01;
+      const def = speciesDef(c.speciesId);
       const owner = owned.find((o) => o.uid === c.ownedUid);
       const bondMul = beastPowerMul(owner?.bondLevel ?? 0);
       const side = c.slot === 0 ? -1.4 : 1.4;

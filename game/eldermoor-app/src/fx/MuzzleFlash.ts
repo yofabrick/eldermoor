@@ -28,10 +28,7 @@ export class WandMuzzle {
       depthWrite: false,
       toneMapped: false,
     });
-    this.sphere = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 8, 8),
-      this.mat,
-    );
+    this.sphere = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 8), this.mat);
     this.sphere.scale.setScalar(SPHERE_SCALE);
     this.sphere.visible = false;
 

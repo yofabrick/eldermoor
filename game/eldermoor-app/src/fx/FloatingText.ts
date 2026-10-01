@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { at, shift } from '../core/util';
 
 interface Floater {
   sprite: THREE.Sprite;
@@ -19,6 +20,8 @@ export class FloatingTextSystem {
   private camera: THREE.Camera;
   private items: Floater[] = [];
   private maxItems = 48;
+  /** Reused scratch vector — avoids one allocation per frame. */
+  private camDist = new THREE.Vector3();
 
   constructor(scene: THREE.Scene, camera: THREE.Camera) {
     this.scene = scene;
@@ -27,7 +30,9 @@ export class FloatingTextSystem {
 
   spawn(worldPos: THREE.Vector3, text: string, color = '#ffe9a8'): void {
     while (this.items.length >= this.maxItems) {
-      this.disposeItem(this.items.shift()!);
+      const oldest = shift(this.items);
+      if (oldest === undefined) break;
+      this.disposeItem(oldest);
     }
 
     const texture = this.makeTextTexture(text, color);
@@ -57,9 +62,10 @@ export class FloatingTextSystem {
   }
 
   update(dt: number): void {
-    const camDist = new THREE.Vector3();
+    const camDist = this.camDist;
     for (let i = this.items.length - 1; i >= 0; i--) {
-      const f = this.items[i];
+      const f = at(this.items, i);
+      if (f === undefined) continue;
       f.age += dt;
       const t = f.age / f.life;
       if (t >= 1) {

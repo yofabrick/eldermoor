@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { at } from '../core/util';
 
 type PathTint = 'none' | 'vita' | 'mortis';
 type WandTier = 0 | 1 | 2;
@@ -110,40 +111,25 @@ export class ViewmodelWand {
     handle.castShadow = false;
 
     // Pommel knob
-    const pommel = new THREE.Mesh(
-      new THREE.SphereGeometry(0.024, 6, 6),
-      this.handleMat,
-    );
+    const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.024, 6, 6), this.handleMat);
     pommel.position.y = -0.06;
 
     // Shaft
-    const shaft = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.012, 0.018, 0.32, 6),
-      this.shaftMat,
-    );
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.018, 0.32, 6), this.shaftMat);
     shaft.position.y = 0.2;
 
     // Ferrule between handle and shaft
-    const ferrule = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.02, 0.02, 0.018, 8),
-      this.bandMat,
-    );
+    const ferrule = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.018, 8), this.bandMat);
     ferrule.position.y = 0.055;
     this.bands.push(ferrule);
 
     // Iron bands (tier 1+)
-    const bandA = new THREE.Mesh(
-      new THREE.TorusGeometry(0.016, 0.004, 5, 10),
-      this.bandMat,
-    );
+    const bandA = new THREE.Mesh(new THREE.TorusGeometry(0.016, 0.004, 5, 10), this.bandMat);
     bandA.rotation.x = Math.PI / 2;
     bandA.position.y = 0.14;
     this.bands.push(bandA);
 
-    const bandB = new THREE.Mesh(
-      new THREE.TorusGeometry(0.014, 0.0035, 5, 10),
-      this.bandMat,
-    );
+    const bandB = new THREE.Mesh(new THREE.TorusGeometry(0.014, 0.0035, 5, 10), this.bandMat);
     bandB.rotation.x = Math.PI / 2;
     bandB.position.y = 0.28;
     this.bands.push(bandB);
@@ -155,15 +141,8 @@ export class ViewmodelWand {
 
     // Crack lines on crystal (tier 0 emphasis)
     for (let i = 0; i < 3; i++) {
-      const crack = new THREE.Mesh(
-        new THREE.BoxGeometry(0.002, 0.05, 0.002),
-        this.crackMat,
-      );
-      crack.position.set(
-        (i - 1) * 0.012,
-        this.tipLocal.y + (i % 2) * 0.01,
-        0.02,
-      );
+      const crack = new THREE.Mesh(new THREE.BoxGeometry(0.002, 0.05, 0.002), this.crackMat);
+      crack.position.set((i - 1) * 0.012, this.tipLocal.y + (i % 2) * 0.01, 0.02);
       crack.rotation.z = (i - 1) * 0.4;
       this.crackDecals.push(crack);
       this.wand.add(crack);
@@ -171,10 +150,7 @@ export class ViewmodelWand {
 
     // Glowing runes along shaft (tier 2)
     for (let i = 0; i < 4; i++) {
-      const rune = new THREE.Mesh(
-        new THREE.BoxGeometry(0.006, 0.014, 0.003),
-        this.runeMat,
-      );
+      const rune = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.014, 0.003), this.runeMat);
       const a = (i / 4) * Math.PI * 2 + 0.4;
       rune.position.set(Math.cos(a) * 0.015, 0.12 + i * 0.055, Math.sin(a) * 0.015);
       rune.lookAt(0, rune.position.y, 0);
@@ -238,15 +214,10 @@ export class ViewmodelWand {
     }
 
     // Bind-ready: soft breathe on tip
-    const readyBreathe = opts.bindReady && !opts.channeling
-      ? 0.15 + 0.1 * Math.sin(this.time * 4)
-      : 0;
+    const readyBreathe =
+      opts.bindReady && !opts.channeling ? 0.15 + 0.1 * Math.sin(this.time * 4) : 0;
 
-    this.anim.position.set(
-      swayX + bobX + shakeX,
-      swayY + bobY - kickY + shakeY,
-      kickZ,
-    );
+    this.anim.position.set(swayX + bobX + shakeX, swayY + bobY - kickY + shakeY, kickZ);
     this.anim.rotation.set(kickRotX, swayRot * 0.5, bobRot + swayRot);
 
     // Tip emissive composition
@@ -279,14 +250,12 @@ export class ViewmodelWand {
 
     // Soft tip scale pulse on channel / cast
     const tipScale =
-      1 +
-      (opts.channeling ? channelPulse * 0.12 : 0) +
-      flashAmt * 0.2 +
-      this.bindPulse * 0.15;
+      1 + (opts.channeling ? channelPulse * 0.12 : 0) + flashAmt * 0.2 + this.bindPulse * 0.15;
     this.tip.scale.set(tipScale, 1.35 * tipScale, tipScale);
 
     if (this.tier >= 2) {
-      this.runeMat.emissiveIntensity = 0.7 + Math.sin(this.time * 3) * 0.25 + (opts.channeling ? channelPulse * 0.5 : 0);
+      this.runeMat.emissiveIntensity =
+        0.7 + Math.sin(this.time * 3) * 0.25 + (opts.channeling ? channelPulse * 0.5 : 0);
     }
   }
 
@@ -329,7 +298,7 @@ export class ViewmodelWand {
   }
 
   private applyPathTint() {
-    this.baseTipColor = PATH_COLORS[this.path] ?? PATH_COLORS.none;
+    this.baseTipColor = PATH_COLORS[this.path];
     this.tipMat.emissive.setHex(this.baseTipColor);
     this.tipMat.color.setHex(this.baseTipColor);
     // Brightness by path
@@ -347,7 +316,8 @@ export class ViewmodelWand {
     // Ferrule (index 0) always on; extra iron bands only tier 1+
     if (this.bands[0]) this.bands[0].visible = true;
     for (let i = 1; i < this.bands.length; i++) {
-      this.bands[i].visible = showBands;
+      const band = at(this.bands, i);
+      if (band) band.visible = showBands;
     }
     for (const r of this.runes) r.visible = showRunes;
     for (const c of this.crackDecals) c.visible = showCracks;

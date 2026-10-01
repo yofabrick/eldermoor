@@ -1,5 +1,5 @@
 import type { CaptureMethod, Inventory, WildBeast } from '../core/types';
-import { SPECIES } from '../data/species';
+import { speciesDef } from '../data/species';
 import { catchChance, methodMult } from './CaptureMath';
 
 /** Capture state machine phases. */
@@ -97,10 +97,10 @@ export class CaptureController {
    */
   estimateChance(beast: WildBeast | null, method: CaptureMethod = 'bond'): number {
     if (!beast) return 0;
-    const species = SPECIES[beast.speciesId];
+    const species = speciesDef(beast.speciesId);
     return catchChance({
-      catchBase: species?.stats.catchBase ?? 0.3,
-      wil: species?.stats.wil ?? 2,
+      catchBase: species.stats.catchBase,
+      wil: species.stats.wil,
       methodMult: methodMult(method),
       softenQuality: this.state === 'idle' ? 1.1 : this.softenQuality,
       toolTier: this.toolTier,
@@ -168,9 +168,10 @@ export class CaptureController {
       return { event: 'none', target: this.target };
     }
 
-    if (this.state === 'channeling') {
+    // Remaining state is 'channeling' — idle and resolve returned above.
+    {
       if (playerPos && this.target) {
-        const tp = this.target.mesh?.position ?? this.target.position;
+        const tp = this.target.mesh.position;
         const dx = playerPos.x - tp.x;
         const dz = playerPos.z - tp.z;
         const dist = Math.hypot(dx, dz);
@@ -227,11 +228,14 @@ export class CaptureController {
   private finishChannel(): CaptureUpdateResult {
     const target = this.target;
     const method = this.method;
-    const species = target ? SPECIES[target.speciesId] : undefined;
+    if (!target) {
+      return { event: 'window_closed' };
+    }
+    const species = speciesDef(target.speciesId);
 
-    const catchBase = species?.stats.catchBase ?? 0.3;
-    const wil = species?.stats.wil ?? 2;
-    const tip = species?.failLesson ?? 'Verbindung war zu schwach.';
+    const catchBase = species.stats.catchBase;
+    const wil = species.stats.wil;
+    const tip = species.failLesson;
 
     const catchProb = catchChance({
       catchBase,
@@ -241,7 +245,7 @@ export class CaptureController {
       toolTier: this.toolTier,
       pathAffinity: this.pathAffinity,
       coopBonus: this.coopBonus,
-      tutorialBoost: this.tutorialBoost && target?.speciesId === 'B01',
+      tutorialBoost: this.tutorialBoost && target.speciesId === 'B01',
     });
 
     const success = Math.random() < catchProb;

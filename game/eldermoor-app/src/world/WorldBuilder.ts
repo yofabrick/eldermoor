@@ -18,6 +18,13 @@ function mulberry32(seed: number): () => number {
   };
 }
 
+/** Write an RGB triple into a packed vertex-color buffer at vertex `index`. */
+function setVertexColor(colors: Float32Array, index: number, c: THREE.Color): void {
+  colors[index * 3] = c.r;
+  colors[index * 3 + 1] = c.g;
+  colors[index * 3 + 2] = c.b;
+}
+
 export function isInBounds(x: number, z: number, bounds: number): boolean {
   return x * x + z * z <= bounds * bounds;
 }
@@ -73,6 +80,7 @@ export class WorldBuilder {
     const groundGeo = new THREE.PlaneGeometry(groundSize, groundSize, 64, 64);
     groundGeo.rotateX(-Math.PI / 2);
     const pos = groundGeo.attributes.position;
+    if (!pos) throw new Error('ground geometry has no position attribute');
     const colors = new Float32Array(pos.count * 3);
     const base = new THREE.Color(0x3d5c3a);
     const gold = new THREE.Color(0x6a7a3a);
@@ -88,14 +96,16 @@ export class WorldBuilder {
       const z = pos.getZ(i);
       // Gentle height noise for soft rolling glade
       let h =
-        Math.sin(x * 0.04) * Math.cos(z * 0.035) * 0.35 +
-        Math.sin(x * 0.12 + z * 0.08) * 0.12;
+        Math.sin(x * 0.04) * Math.cos(z * 0.035) * 0.35 + Math.sin(x * 0.12 + z * 0.08) * 0.12;
       // Slight depression at camp hearth (reads as worn path)
       const campDist = Math.hypot(x - stonesCx, z - stonesCz);
       if (campDist < 14) h *= 0.55 + (campDist / 14) * 0.45;
       pos.setY(i, h);
       const t = (Math.sin(x * 0.08) * Math.cos(z * 0.07) + 1) * 0.5;
-      tmp.copy(base).lerp(gold, t * 0.55).lerp(dark, (1 - t) * 0.25);
+      tmp
+        .copy(base)
+        .lerp(gold, t * 0.55)
+        .lerp(dark, (1 - t) * 0.25);
       // Unified camp zone: warm glade + dirt ring + hearth — baked, not overlays
       // Fire pit at local offset (−1.2, 1.0) from stones center in world = (4.8, −3)
       const fireDist = Math.hypot(x - (stonesCx - 1.2), z - (stonesCz + 1.0));
@@ -113,9 +123,7 @@ export class WorldBuilder {
       // Slight radial darkening toward bounds edge
       const dist = Math.hypot(x, z) / (groundSize * 0.5);
       if (dist > 0.7) tmp.lerp(new THREE.Color(0x1a2218), (dist - 0.7) * 0.8);
-      colors[i * 3] = tmp.r;
-      colors[i * 3 + 1] = tmp.g;
-      colors[i * 3 + 2] = tmp.b;
+      setVertexColor(colors, i, tmp);
     }
     groundGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     groundGeo.computeVertexNormals();
@@ -225,16 +233,12 @@ export class WorldBuilder {
     // Asymmetric triad: tapered monoliths (not boxes) — silhouette at 20m without sprite
     const stoneSpecs = [
       { a: -Math.PI / 6, r: 3.0, h: 6.0, lean: 0.1, rTop: 0.28, rBot: 0.55 },
-      { a: (-Math.PI / 6) + (Math.PI * 2) / 3, r: 3.4, h: 4.4, lean: -0.08, rTop: 0.22, rBot: 0.42 },
-      { a: (-Math.PI / 6) + (Math.PI * 4) / 3, r: 3.1, h: 7.0, lean: 0.14, rTop: 0.32, rBot: 0.62 },
+      { a: -Math.PI / 6 + (Math.PI * 2) / 3, r: 3.4, h: 4.4, lean: -0.08, rTop: 0.22, rBot: 0.42 },
+      { a: -Math.PI / 6 + (Math.PI * 4) / 3, r: 3.1, h: 7.0, lean: 0.14, rTop: 0.32, rBot: 0.62 },
     ];
-    for (let i = 0; i < stoneSpecs.length; i++) {
-      const s = stoneSpecs[i];
+    for (const [i, s] of stoneSpecs.entries()) {
       // Tapered stone column — reads as menhir, not crate
-      const body = new THREE.Mesh(
-        new THREE.CylinderGeometry(s.rTop, s.rBot, s.h, 7),
-        stoneBodyMat,
-      );
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(s.rTop, s.rBot, s.h, 7), stoneBodyMat);
       body.position.set(Math.cos(s.a) * s.r, s.h * 0.5, Math.sin(s.a) * s.r);
       body.rotation.z = s.lean;
       body.rotation.y = s.a + Math.PI / 2;
@@ -246,25 +250,15 @@ export class WorldBuilder {
         new THREE.BoxGeometry(s.rBot * 1.1, s.h * 0.22, 0.08),
         goldRimMat,
       );
-      rune.position.set(
-        Math.cos(s.a) * s.r * 0.92,
-        s.h * 0.5,
-        Math.sin(s.a) * s.r * 0.92,
-      );
+      rune.position.set(Math.cos(s.a) * s.r * 0.92, s.h * 0.5, Math.sin(s.a) * s.r * 0.92);
       rune.lookAt(0, s.h * 0.5, 0);
       rune.castShadow = true;
 
       // Stone cap mass (stone first) + small gold tip gem
-      const capStone = new THREE.Mesh(
-        new THREE.SphereGeometry(s.rTop * 1.15, 6, 5),
-        stoneBodyMat,
-      );
+      const capStone = new THREE.Mesh(new THREE.SphereGeometry(s.rTop * 1.15, 6, 5), stoneBodyMat);
       capStone.position.set(Math.cos(s.a) * s.r, s.h + 0.15, Math.sin(s.a) * s.r);
       capStone.castShadow = true;
-      const capGem = new THREE.Mesh(
-        new THREE.OctahedronGeometry(0.18 + i * 0.04, 0),
-        goldRimMat,
-      );
+      const capGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.18 + i * 0.04, 0), goldRimMat);
       capGem.position.set(
         Math.cos(s.a) * s.r,
         s.h + 0.45 + Math.abs(s.lean) * 0.3,
@@ -273,10 +267,7 @@ export class WorldBuilder {
 
       // Broken lintel between tallest stones
       if (i === 0) {
-        const lintel = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.2, 0.26, 2.8, 6),
-          stoneBodyMat,
-        );
+        const lintel = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.26, 2.8, 6), stoneBodyMat);
         lintel.rotation.z = Math.PI / 2 - 0.2;
         lintel.position.set(0.3, 5.5, -0.5);
         lintel.castShadow = true;
@@ -286,16 +277,10 @@ export class WorldBuilder {
       stoneGroup.add(body, rune, capStone, capGem);
     }
     // Central stone needle — pure stone mass + small gold tip only
-    const needle = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.16, 0.52, 7.2, 8),
-      stoneBodyMat,
-    );
+    const needle = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.52, 7.2, 8), stoneBodyMat);
     needle.position.y = 3.7;
     needle.castShadow = true;
-    const needleTip = new THREE.Mesh(
-      new THREE.ConeGeometry(0.34, 1.5, 8),
-      stoneBodyMat,
-    );
+    const needleTip = new THREE.Mesh(new THREE.ConeGeometry(0.34, 1.5, 8), stoneBodyMat);
     needleTip.position.y = 8.0;
     needleTip.castShadow = true;
     const tipGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0), goldRimMat);
@@ -455,14 +440,14 @@ export class WorldBuilder {
     ];
     for (const layout of ruinLayouts) {
       const wall = new THREE.Group();
-      const main = new THREE.Mesh(
-        new THREE.BoxGeometry(layout.w, layout.h, 0.45),
-        ruinMat,
-      );
+      const main = new THREE.Mesh(new THREE.BoxGeometry(layout.w, layout.h, 0.45), ruinMat);
       main.position.y = layout.h * 0.5;
       wall.add(main);
       // Broken top notch
-      const chip = new THREE.Mesh(new THREE.BoxGeometry(layout.w * 0.35, layout.h * 0.35, 0.5), ruinMat);
+      const chip = new THREE.Mesh(
+        new THREE.BoxGeometry(layout.w * 0.35, layout.h * 0.35, 0.5),
+        ruinMat,
+      );
       chip.position.set(layout.w * 0.2, layout.h * 0.85, 0);
       wall.add(chip);
       // Fallen rubble block

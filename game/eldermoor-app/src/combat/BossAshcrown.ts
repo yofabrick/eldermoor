@@ -84,7 +84,12 @@ export class BossAshcrown {
       const a = (i / 6) * Math.PI * 2;
       const rock = new THREE.Mesh(
         new THREE.DodecahedronGeometry(1.2 + (i % 2) * 0.4, 0),
-        new THREE.MeshStandardMaterial({ color: 0x3a2a22, roughness: 0.9, emissive: 0x221100, emissiveIntensity: 0.15 }),
+        new THREE.MeshStandardMaterial({
+          color: 0x3a2a22,
+          roughness: 0.9,
+          emissive: 0x221100,
+          emissiveIntensity: 0.15,
+        }),
       );
       rock.position.set(
         this.arenaCenter.x + Math.cos(a) * (this.arenaRadius - 2),
@@ -202,11 +207,7 @@ export class BossAshcrown {
           onPlayerDamage(dmg, 'stomp');
         }
       }
-    } else if (
-      dist < STOMP_RANGE &&
-      this.attackCd <= 0 &&
-      this.breathWindup <= 0
-    ) {
+    } else if (dist < STOMP_RANGE && this.attackCd <= 0 && this.breathWindup <= 0) {
       this.pendingStompCenter.copy(this.beast.mesh.position);
       this.pendingStompCenter.y = 0;
       this.telegraph.showCircle(this.pendingStompCenter, STOMP_RANGE, STOMP_TELEGRAPH, 0xff3300);
@@ -286,10 +287,7 @@ export class BossAshcrown {
   }
 
   /** Fire VFX + cone damage after telegraph completes */
-  private resolveBreath(
-    playerPos: THREE.Vector3,
-    onPlayerDamage: (n: number, k: string) => void,
-  ) {
+  private resolveBreath(playerPos: THREE.Vector3, onPlayerDamage: (n: number, k: string) => void) {
     const dir = this.pendingBreathDir!;
     const origin = this.beast.mesh.position.clone();
     origin.y = 1.2;

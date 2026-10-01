@@ -1,6 +1,6 @@
 import type * as THREE_NS from 'three';
 import type { Inventory, WildBeast } from '../core/types';
-import { SPECIES } from '../data/species';
+import { speciesDef } from '../data/species';
 
 const AGGRO_BASE = 10;
 const LEASH = 14;
@@ -46,13 +46,12 @@ export class BeastAI {
   ): void {
     if (beast.state === 'captured') return;
 
-    const def = SPECIES[beast.speciesId] ?? SPECIES.B01;
+    const def = speciesDef(beast.speciesId);
     const scale = def.scale;
     const groundY = scale * 0.5;
     const mesh = beast.mesh;
     const spawn: THREE_NS.Vector3 =
-      (mesh.userData.spawn as THREE_NS.Vector3 | undefined) ??
-      mesh.position.clone();
+      (mesh.userData.spawn as THREE_NS.Vector3 | undefined) ?? mesh.position.clone();
     if (!mesh.userData.spawn) mesh.userData.spawn = spawn.clone();
 
     // B04: periodically overheat while HP is high
@@ -75,7 +74,7 @@ export class BeastAI {
 
     // Subtle idle breathe / sway (charm — not frozen props)
     if (beast.state === 'wander' || beast.state === 'soften' || beast.state === 'opportunity') {
-      const t = (mesh.userData.idleT as number) ?? Math.random() * 10;
+      const t = (mesh.userData.idleT as number | undefined) ?? Math.random() * 10;
       mesh.userData.idleT = t + dt;
       const bob = Math.sin(mesh.userData.idleT * 2.2) * 0.03;
       mesh.position.y = groundY + bob;
@@ -85,7 +84,7 @@ export class BeastAI {
     const dx = playerPos.x - mesh.position.x;
     const dz = playerPos.z - mesh.position.z;
     const distPlayer = Math.hypot(dx, dz);
-    const tier = def.stats ? def.tier : 1;
+    const tier = def.tier;
     const aggroRange = AGGRO_BASE * (1 + (tier - 1) * 0.15) * (0.85 + def.stats.wil * 0.05);
 
     // Low-HP flee chance
@@ -165,26 +164,34 @@ export class BeastAI {
         }
         break;
       }
+      // Non-hostile states (wander / soften / opportunity) hold ground instead
+      // of fleeing — that stillness is what makes the bind window readable.
       case 'wander':
-      default: {
+      case 'soften':
+      case 'opportunity': {
         speed = WANDER_SPEED * (0.8 + def.stats.spd * 0.06);
         let t = this._wanderTimer.get(mesh) ?? 0;
         t -= dt;
+        // (Re)pick a wander point when the timer expired or the target was lost.
+        // Either way `beast.target` is non-null afterwards.
         if (t <= 0 || !beast.target) {
           const ang = Math.random() * Math.PI * 2;
           const rad = 2 + Math.random() * (LEASH * 0.55);
           const tx = spawn.x + Math.cos(ang) * rad;
           const tz = spawn.z + Math.sin(ang) * rad;
-          beast.target = mesh.position.clone();
-          beast.target.x = tx;
-          beast.target.z = tz;
-          beast.target.y = groundY;
+          const goal = mesh.position.clone();
+          goal.x = tx;
+          goal.z = tz;
+          goal.y = groundY;
+          beast.target = goal;
           t = 1.5 + Math.random() * 2.5;
         }
         this._wanderTimer.set(mesh, t);
-        if (beast.target) {
-          const wx = beast.target.x - mesh.position.x;
-          const wz = beast.target.z - mesh.position.z;
+        {
+          // Non-null here: the branch above always assigns a target.
+          const goal = beast.target as THREE_NS.Vector3;
+          const wx = goal.x - mesh.position.x;
+          const wz = goal.z - mesh.position.z;
           const wlen = Math.hypot(wx, wz);
           if (wlen < 0.35) {
             beast.target = null;
@@ -231,21 +238,18 @@ export class BeastAI {
   /**
    * Simplified Soften-key checks per species.
    */
-  canSoften(
-    beast: WildBeast,
-    inv: Inventory,
-    methodHints: SoftenMethodHints = {},
-  ): SoftenCheck {
+  canSoften(beast: WildBeast, inv: Inventory, methodHints: SoftenMethodHints = {}): SoftenCheck {
     const hpRatio = beast.hp / Math.max(1, beast.maxHp);
     const now = performance.now();
-    const heavyRecent = beast.heavyDamageRecent > 0 && now - beast.heavyDamageRecent < HEAVY_DAMAGE_WINDOW_MS;
+    const heavyRecent =
+      beast.heavyDamageRecent > 0 && now - beast.heavyDamageRecent < HEAVY_DAMAGE_WINDOW_MS;
     const chargeWhiffRecent =
       beast.lastChargeWhiff > 0 && now - beast.lastChargeWhiff < CHARGE_WHIFF_WINDOW_MS;
 
     switch (beast.speciesId) {
       case 'B01': {
         // Peaceful tutorial: shiny tin bait only
-        if ((inv.shiny_tin_bait ?? 0) <= 0) {
+        if (inv.shiny_tin_bait <= 0) {
           return { ok: false, reason: 'Brauchst Glitzer-Köder (Inventar) — kein Kampf nötig' };
         }
         if (heavyRecent) {
@@ -273,7 +277,7 @@ export class BeastAI {
         if (heavyRecent) {
           return { ok: false, reason: 'Schwere Treffer ängstigen es — aufhören zu schlagen' };
         }
-        const nearLight = beast.calmed || !!methodHints.inLight;
+        const nearLight = beast.calmed || Boolean(methodHints.inLight);
         if (!nearLight) {
           return { ok: false, reason: 'Braucht Ruhe am Licht (Tag oder Schrein)' };
         }

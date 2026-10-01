@@ -25,6 +25,26 @@ function finishTex(c: HTMLCanvasElement, repeatX = 1, repeatY = 1): THREE.Canvas
   return tex;
 }
 
+/**
+ * Bounds-checked pixel accessor for a canvas ImageData buffer.
+ * Canvas data is always allocated as size*size*4 RGBA, so an in-range
+ * index is guaranteed to exist — but the type system cannot know that.
+ */
+function px(data: Uint8ClampedArray, index: number): number {
+  const v = data[index];
+  return v === undefined ? 0 : v;
+}
+
+/** Read-modify-write helper: add `delta` to a channel, clamped to 0..255. */
+function bump(data: Uint8ClampedArray, index: number, delta: number): void {
+  data[index] = Math.min(255, Math.max(0, px(data, index) + delta));
+}
+
+/** Read-modify-write helper: scale a channel, clamped to 0..255. */
+function scaleCh(data: Uint8ClampedArray, index: number, factor: number): void {
+  data[index] = Math.min(255, Math.max(0, px(data, index) * factor));
+}
+
 export function makeGrassTexture(size = 256): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = c.height = size;
@@ -66,8 +86,7 @@ export function makeBarkTexture(size = 128): THREE.CanvasTexture {
     for (let x = 0; x < size; x++) {
       // Vertical grain (wrap-friendly via periodic x)
       const wx = (x / size) * Math.PI * 2;
-      const ridge =
-        Math.sin(wx * 4 + noise2(x * 0.3, y * 0.05, 7) * 2.5) * 0.5 + 0.5;
+      const ridge = Math.sin(wx * 4 + noise2(x * 0.3, y * 0.05, 7) * 2.5) * 0.5 + 0.5;
       const grain = fbm2(x * 0.18, y * 0.55, 8);
       const crack = noise2(x * 0.9, y * 0.08, 12) > 0.88 ? 0.35 : 0;
       const v = ridge * 0.45 + grain * 0.45 - crack;
@@ -81,8 +100,8 @@ export function makeBarkTexture(size = 128): THREE.CanvasTexture {
       img.data[i + 3] = 255;
       // Sparse lighter knot flecks
       if (noise2(x * 0.4, y * 0.4, 15) > 0.97) {
-        img.data[i] = Math.min(255, img.data[i] + 30);
-        img.data[i + 1] = Math.min(255, img.data[i + 1] + 18);
+        bump(img.data, i, 30);
+        bump(img.data, i + 1, 18);
       }
     }
   }
@@ -116,9 +135,9 @@ export function makeLeafTexture(size = 128): THREE.CanvasTexture {
       }
       // Dark gaps between leaves
       if (noise2(x * 0.35, y * 0.35, 24) > 0.9) {
-        img.data[i] *= 0.45;
-        img.data[i + 1] *= 0.5;
-        img.data[i + 2] *= 0.45;
+        scaleCh(img.data, i, 0.45);
+        scaleCh(img.data, i + 1, 0.5);
+        scaleCh(img.data, i + 2, 0.45);
       }
     }
   }
@@ -146,9 +165,9 @@ export function makeStoneTexture(size = 128): THREE.CanvasTexture {
       // Dark mineral veins
       const vein = Math.abs(Math.sin(x * 0.2 + y * 0.35 + n * 4));
       if (vein < 0.12) {
-        img.data[i] *= 0.55;
-        img.data[i + 1] *= 0.55;
-        img.data[i + 2] *= 0.6;
+        scaleCh(img.data, i, 0.55);
+        scaleCh(img.data, i + 1, 0.55);
+        scaleCh(img.data, i + 2, 0.6);
       }
       // Light lichen flecks
       if (noise2(x, y, 33) > 0.94) {

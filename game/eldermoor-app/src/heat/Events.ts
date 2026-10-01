@@ -56,8 +56,7 @@ export class WorldEvents {
       this.pamphletDone = true;
       result.spawnPamphlet = true;
       if (!result.toast) {
-        result.toast =
-          'Ein Flugblatt am Wind: „Unlisted, die zu laut werden, finden Zuschauer.“';
+        result.toast = 'Ein Flugblatt am Wind: „Unlisted, die zu laut werden, finden Zuschauer.“';
       }
     }
 

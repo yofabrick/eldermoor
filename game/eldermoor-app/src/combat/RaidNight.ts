@@ -106,7 +106,12 @@ export class RaidNight {
       // Grey-gold ring
       const ring = new THREE.Mesh(
         new THREE.RingGeometry(0.6, 0.75, 16),
-        new THREE.MeshBasicMaterial({ color: 0xc9a227, transparent: true, opacity: 0.5, side: THREE.DoubleSide }),
+        new THREE.MeshBasicMaterial({
+          color: 0xc9a227,
+          transparent: true,
+          opacity: 0.5,
+          side: THREE.DoubleSide,
+        }),
       );
       ring.rotation.x = -Math.PI / 2;
       ring.position.y = 0.05;

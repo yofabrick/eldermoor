@@ -76,7 +76,9 @@ export class PauseMenu {
       this.setOpen(false);
       this.onResume?.();
     });
-    document.getElementById('pause-upgrade')?.addEventListener('click', () => this.onUpgradeWand?.());
+    document
+      .getElementById('pause-upgrade')
+      ?.addEventListener('click', () => this.onUpgradeWand?.());
   }
 
   isOpen() {
@@ -87,7 +89,8 @@ export class PauseMenu {
     this.open = v;
     this.root.classList.toggle('show', v);
     if (v) {
-      document.exitPointerLock?.();
+      // exitPointerLock throws if the document is not currently locked.
+      if (document.pointerLockElement) document.exitPointerLock();
     }
   }
 

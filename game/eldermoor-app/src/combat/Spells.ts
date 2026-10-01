@@ -112,7 +112,6 @@ export function canCast(
   cooldownRemaining = 0,
 ): boolean {
   const def = SPELLs[spellId];
-  if (!def) return false;
   if (cooldownRemaining > 0) return false;
   return player.mana >= def.mana;
 }
@@ -128,7 +127,6 @@ export function castSpell(
   cooldownRemaining = 0,
 ): CastResult {
   const spell = SPELLs[spellId];
-  if (!spell) return { ok: false, reason: 'unknown' };
   if (cooldownRemaining > 0) return { ok: false, reason: 'cooldown' };
   if (player.mana < spell.mana) return { ok: false, reason: 'mana' };
 
@@ -161,11 +159,15 @@ export function castSpell(
 }
 
 /** Hit-meta flags derived from a spell (for projectiles / pulse). */
-export function spellHitMeta(spellId: SpellId): { soft: boolean; interrupt: boolean; cone: boolean } {
+export function spellHitMeta(spellId: SpellId): {
+  soft: boolean;
+  interrupt: boolean;
+  cone: boolean;
+} {
   const s = SPELLs[spellId];
   return {
-    soft: s?.soft ?? false,
-    interrupt: s?.interrupt ?? false,
-    cone: s?.cone ?? false,
+    soft: s.soft,
+    interrupt: s.interrupt,
+    cone: s.cone,
   };
 }

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { at, shift } from '../core/util';
 
 interface Decal {
   mesh: THREE.Mesh;
@@ -27,7 +28,9 @@ export class ImpactDecals {
   /** Spawn a scorchmark / magic burn on the ground. */
   spawn(position: THREE.Vector3, normal: THREE.Vector3, color: number): void {
     while (this.decals.length >= MAX_DECALS) {
-      this.disposeDecal(this.decals.shift()!);
+      const oldest = shift(this.decals);
+      if (oldest === undefined) break;
+      this.disposeDecal(oldest);
     }
 
     const material = new THREE.MeshBasicMaterial({
@@ -66,7 +69,8 @@ export class ImpactDecals {
 
   update(dt: number): void {
     for (let i = this.decals.length - 1; i >= 0; i--) {
-      const d = this.decals[i];
+      const d = at(this.decals, i);
+      if (d === undefined) continue;
       d.age += dt;
       const t = d.age / d.life;
       if (t >= 1) {

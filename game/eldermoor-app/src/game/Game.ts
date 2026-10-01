@@ -10,8 +10,10 @@ import {
   type WildBeast,
   type CaptureMethod,
   type GameSave,
+  type ResourceNode,
 } from '../core/types';
 import { Hud } from '../ui/Hud';
+import type { BarTarget } from '../ui/BeastBars';
 import { Player } from '../player/Player';
 import { WorldBuilder } from '../world/WorldBuilder';
 import { DayNight } from '../world/DayNight';
@@ -30,7 +32,8 @@ import { ProjectileSystem } from '../combat/Projectiles';
 import { getCombatAim, getWardTarget } from '../combat/Aim';
 import { HeatSystem } from '../heat/HeatSystem';
 import { WorldEvents } from '../heat/Events';
-import { SPECIES, STARTER_SPAWNS } from '../data/species';
+import { STARTER_SPAWNS, speciesDef } from '../data/species';
+import { at, shift } from '../core/util';
 import { AudioBus } from '../audio/AudioBus';
 import { FloatingTextSystem } from '../fx/FloatingText';
 import { flashMesh } from '../fx/HitFlash';
@@ -159,10 +162,13 @@ export class Game {
   private lastFullToast = 0;
   private playTime = 0;
   private objective = 'Sammle HOLZ (braune Stämme mit Ring) — drüberlaufen';
-  private fieldParty!: FieldParty;
-  private stationWorkers!: StationWorkers;
-  private beastBars!: BeastBars;
-  private resourceLabels!: ResourceLabels;
+  // Constructed inside resetWorld(), so these are null only for the duration of
+  // the first call's teardown phase. Kept nullable rather than `!` so that
+  // "not built yet" is representable instead of a lie to the type checker.
+  private fieldParty: FieldParty | null = null;
+  private stationWorkers: StationWorkers | null = null;
+  private beastBars: BeastBars | null = null;
+  private resourceLabels: ResourceLabels | null = null;
   private mire: MireZoneResult | null = null;
   private mireToasted = false;
   private mirePoisonAccum = 0;
@@ -182,7 +188,7 @@ export class Game {
   private hitMarker = new HitMarker();
   private crosshair = new Crosshair();
   private feelCam!: FeelCamera;
-  private viewWand!: ViewmodelWand;
+  private viewWand: ViewmodelWand | null = null;
   private wandMuzzle = new WandMuzzle();
   private impactDecals!: ImpactDecals;
   private bindBar = new BindChannelBar();
@@ -195,14 +201,52 @@ export class Game {
   private autoSaveTimer = 0;
   private maelSummoned = false;
   private _nearGather: {
-    node: import('../core/types').ResourceNode | null;
+    node: ResourceNode | null;
     gained: string | null;
     full?: boolean;
-    kind?: import('../core/types').ResourceNode['kind'];
+    kind?: ResourceNode['kind'];
   } = { node: null, gained: null };
 
+  /**
+   * Field party, guaranteed live.
+   * Built by resetWorld() (called from startNew/startLoad); every caller runs
+   * after that, so a missing instance is a real programming error, not a state
+   * to branch on.
+   */
+  private get party(): FieldParty {
+    if (!this.fieldParty) throw new Error('FieldParty used before world init');
+    return this.fieldParty;
+  }
+
+  /** Health/rune bars, guaranteed live. See `party`. */
+  private get bars(): BeastBars {
+    if (!this.beastBars) throw new Error('BeastBars used before world init');
+    return this.beastBars;
+  }
+
+  /** Station workers, guaranteed live. See `party`. */
+  private get workers(): StationWorkers {
+    if (!this.stationWorkers) throw new Error('StationWorkers used before world init');
+    return this.stationWorkers;
+  }
+
+  /** World resource labels, guaranteed live. See `party`. */
+  private get labels(): ResourceLabels {
+    if (!this.resourceLabels) throw new Error('ResourceLabels used before world init');
+    return this.resourceLabels;
+  }
+
+  /** First-person wand viewmodel, guaranteed live. See `party`. */
+  private get wandView(): ViewmodelWand {
+    if (!this.viewWand) throw new Error('ViewmodelWand used before world init');
+    return this.viewWand;
+  }
+
   constructor(canvasParent: HTMLElement) {
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: 'high-performance',
+    });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
@@ -270,38 +314,21 @@ export class Game {
   }
 
   private resetWorld(save: GameSave | null) {
-    // Subsystem teardown BEFORE scene wipe (workstream L — no camera-parented leaks)
+    // Subsystem teardown BEFORE scene wipe (workstream L — no camera-parented leaks).
+    // On the very first call these fields are still unassigned, so skip teardown;
+    // every later call (restart / new game) disposes properly.
     this.clearBuildGhost();
-    try {
-      this.beastBars?.clear?.();
-    } catch {
-      /* first boot */
-    }
-    try {
-      this.resourceLabels?.clear?.();
-    } catch {
-      /* first boot */
-    }
-    try {
-      this.fieldParty?.clear?.();
-    } catch {
-      /* first boot */
-    }
-    try {
-      this.stationWorkers?.clear?.();
-    } catch {
-      /* first boot */
-    }
+    if (this.beastBars) this.beastBars.clear();
+    if (this.resourceLabels) this.resourceLabels.clear();
+    if (this.fieldParty) this.fieldParty.clear();
+    if (this.stationWorkers) this.stationWorkers.clear();
     // Viewmodel is parented to camera — must dispose before new ViewmodelWand
-    try {
-      this.viewWand?.dispose?.();
-    } catch {
-      /* first boot */
-    }
+    if (this.viewWand) this.viewWand.dispose();
 
     // Clear scene children + dispose GPU resources
     while (this.scene.children.length) {
-      const obj = this.scene.children[0];
+      const obj = shift(this.scene.children);
+      if (!obj) break;
       this.scene.remove(obj);
       obj.traverse((c) => {
         if (c instanceof THREE.Mesh) {
@@ -349,8 +376,6 @@ export class Game {
     this.impactDecals = new ImpactDecals(this.scene);
     this.projectiles = new ProjectileSystem(this.scene);
     this.floatText = new FloatingTextSystem(this.scene, this.camera);
-    this.fieldParty?.clear?.();
-    this.stationWorkers?.clear?.();
     this.fieldParty = new FieldParty(this.scene);
     this.stationWorkers = new StationWorkers(this.scene);
     this.stationWorkers.onChop = () => this.audio.playChop();
@@ -428,12 +453,12 @@ export class Game {
       if (c instanceof THREE.Mesh && c.geometry?.type === 'CylinderGeometry') {
         const g = c.geometry as THREE.CylinderGeometry;
         // crude: hide thin cylinders (wand) on body
-        if (g.parameters && g.parameters.radiusTop < 0.05) c.visible = false;
+        if (g.parameters.radiusTop < 0.05) c.visible = false;
       }
     });
     this.feelCam = new FeelCamera(this.camera);
     this.viewWand = new ViewmodelWand(this.camera);
-    this.viewWand.setTier(Math.min(2, this.wand.tier) as 0 | 1 | 2);
+    this.wandView.setTier(Math.min(2, this.wand.tier) as 0 | 1 | 2);
     // Muzzle on tip — attach via temporary anchor updated each frame if needed
     // WandMuzzle attaches to object; we create a tip anchor under viewmodel
     this.wandMuzzle.attach(this.viewWand.root);
@@ -443,15 +468,11 @@ export class Game {
       this.player.hp = save.player.hp;
       this.player.mana = save.player.mana;
       this.player.strain = save.player.strain;
-      this.viewWand.setTier(Math.min(2, this.wand.tier) as 0 | 1 | 2);
+      this.wandView.setTier(Math.min(2, this.wand.tier) as 0 | 1 | 2);
     }
 
     // Tutorial Glimmerpouch near spawn (easy first bind) — gold halo so it reads at a glance
-    const tutor = createWildBeast(
-      'B01',
-      spawn.clone().add(new THREE.Vector3(4, 0, -6)),
-      THREE,
-    );
+    const tutor = createWildBeast('B01', spawn.clone().add(new THREE.Vector3(4, 0, -6)), THREE);
     const tutorRing = new THREE.Mesh(
       new THREE.RingGeometry(0.55, 0.78, 24),
       new THREE.MeshBasicMaterial({
@@ -470,11 +491,7 @@ export class Game {
     this.wild.push(tutor);
 
     // Brushback nearby for first worker fantasy
-    const boar = createWildBeast(
-      'B02',
-      spawn.clone().add(new THREE.Vector3(-8, 0, 10)),
-      THREE,
-    );
+    const boar = createWildBeast('B02', spawn.clone().add(new THREE.Vector3(-8, 0, 10)), THREE);
     this.scene.add(boar.mesh);
     this.wild.push(boar);
 
@@ -510,7 +527,7 @@ export class Game {
     this.wild.push(ridge);
 
     // Mire natives
-    if (this.mire) {
+    {
       const mireSpawns: [string, number, number][] = [
         ['B06', -50, 38],
         ['B06', -58, 48],
@@ -530,8 +547,8 @@ export class Game {
 
     // Restore field party + station workers after load
     if (save) {
-      this.fieldParty.sync(this.owned);
-      this.stationWorkers.sync(this.owned, this.stations);
+      this.party.sync(this.owned);
+      this.workers.sync(this.owned, this.stations);
     }
 
     if (!save) {
@@ -564,6 +581,8 @@ export class Game {
   };
 
   private update(dt: number) {
+    // Systems below are built in resetWorld() (startNew/startLoad). The loop and
+    // all action handlers only run after one of those completed.
     this.playTime += dt;
     // Soft camp ambience every ~18s (AudioBus character)
     if (Math.floor(this.playTime / 18) !== Math.floor((this.playTime - dt) / 18)) {
@@ -607,12 +626,9 @@ export class Game {
     {
       const method = this.pickBindMethod(this.focusBeast);
       this.capture.toolTier = this.wand.catchToolTier;
-      this.capture.pathAffinity =
-        this.path === 'vita' ? 1.05 : this.path === 'mortis' ? 1.08 : 1.0;
+      this.capture.pathAffinity = this.path === 'vita' ? 1.05 : this.path === 'mortis' ? 1.08 : 1.0;
       this.capture.tutorialBoost = this.owned.length === 0;
-      const fit = this.focusBeast
-        ? this.capture.estimateChance(this.focusBeast, method)
-        : 0;
+      const fit = this.focusBeast ? this.capture.estimateChance(this.focusBeast, method) : 0;
       const phase =
         this.capture.state === 'channeling'
           ? 'channel'
@@ -631,8 +647,7 @@ export class Game {
                 ? 0.28
                 : 0,
         bindFit: phase === 'off' ? 0.35 : fit,
-        channelProgress:
-          phase === 'channel' ? this.capture.channelProgress : 0,
+        channelProgress: phase === 'channel' ? this.capture.channelProgress : 0,
         bindPhase: phase,
         night: this.dayNight.isNight() ? 1 : 0.25,
         footstep: moving && !this.mount.mounted,
@@ -642,7 +657,7 @@ export class Game {
 
     // Viewmodel wand feel
     this.castTimer = Math.max(0, this.castTimer - dt);
-    this.viewWand.update(dt, {
+    this.wandView.update(dt, {
       moving,
       speed: spd,
       casting: this.castTimer > 0,
@@ -694,7 +709,7 @@ export class Game {
       this.lastFullToast = this.playTime;
       this.hud.toast(gatherPrompt(null, false, 0, true, g.kind));
     }
-    this.resourceLabels.update(this.resources, this.player.position);
+    this.labels.update(this.resources, this.player.position);
 
     // Build place
     if (this.buildMode && this.input.tap('KeyE')) {
@@ -702,7 +717,11 @@ export class Game {
     }
 
     // Combat cast — click (pointer lock) or Z / R
-    if ((this.input.pointerLocked && this.input.click()) || this.input.tap('KeyZ') || this.input.tap('KeyR')) {
+    if (
+      (this.input.pointerLocked && this.input.click()) ||
+      this.input.tap('KeyZ') ||
+      this.input.tap('KeyR')
+    ) {
       this.castSelected();
     }
 
@@ -712,7 +731,12 @@ export class Game {
 
     // Mount speed
     const galloping = this.input.pressed('Space');
-    this.player.speedMul = this.mount.update(this.player.position, this.player.yaw, galloping);
+    this.player.speedMul = this.mount.update(
+      this.player.position,
+      this.player.yaw,
+      galloping,
+      this.clock.getElapsedTime() * 1000,
+    );
 
     // Beasts AI (skip boss — driven by BossAshcrown)
     const isNight = this.dayNight.isNight();
@@ -728,7 +752,11 @@ export class Game {
           this.audio.playHit();
           this.shake.add(0.25);
           flashMesh(this.player.mesh, 0xff4444, 100);
-          this.floatText.spawn(this.player.position.clone().add(new THREE.Vector3(0, 2, 0)), `-${Math.floor(pending)}`, '#ff6b6b');
+          this.floatText.spawn(
+            this.player.position.clone().add(new THREE.Vector3(0, 2, 0)),
+            `-${Math.floor(pending)}`,
+            '#ff6b6b',
+          );
         }
       }
     }
@@ -820,7 +848,7 @@ export class Game {
     }
 
     // Field party vs wild + raiders
-    this.fieldParty.update(
+    this.party.update(
       dt,
       this.player.position,
       this.player.forward,
@@ -951,8 +979,8 @@ export class Game {
       if (msg.includes('Holz')) this.pulseStationStack('lumber');
       if (msg.includes('Barren')) this.pulseStationStack('smelter');
     });
-    this.stationWorkers.sync(this.owned, this.stations);
-    this.stationWorkers.update(dt);
+    this.workers.sync(this.owned, this.stations);
+    this.workers.update(dt);
 
     // Heat events
     const ev = this.events.update(
@@ -974,7 +1002,7 @@ export class Game {
     // Watcher idle sway (still watching) — elevated ridge read
     if (this.watcherMesh) {
       this.watcherMesh.rotation.y = Math.sin(this.playTime * 0.4) * 0.15;
-      const baseY = (this.watcherMesh.userData.baseY as number) ?? 2.2;
+      const baseY = (this.watcherMesh.userData.baseY as number | undefined) ?? 2.2;
       this.watcherMesh.position.y = baseY + Math.sin(this.playTime * 0.8) * 0.04;
     }
     // Campfire multi-layer flicker (outer / mid / inner + embers + light bob)
@@ -1009,7 +1037,8 @@ export class Game {
       if (light instanceof THREE.PointLight) {
         const duskBoost = (light.userData.duskBoost as number) || 1;
         light.intensity =
-          (2.8 + Math.sin(this.playTime * 11) * 0.7 + Math.sin(this.playTime * 19) * 0.35) * duskBoost;
+          (2.8 + Math.sin(this.playTime * 11) * 0.7 + Math.sin(this.playTime * 19) * 0.35) *
+          duskBoost;
       }
     }
 
@@ -1068,7 +1097,13 @@ export class Game {
     });
 
     // HUD
-    this.hud.setVitals(this.player.hp, this.player.maxHp, this.player.mana, this.player.maxMana, this.player.strain);
+    this.hud.setVitals(
+      this.player.hp,
+      this.player.maxHp,
+      this.player.mana,
+      this.player.maxMana,
+      this.player.strain,
+    );
     this.hud.setHeat(this.heat.heat);
     this.hud.setInventory(this.inv, this.path);
     this.hud.setParty(this.owned);
@@ -1090,7 +1125,7 @@ export class Game {
       );
     } else if (this.focusBeast && !this._bindSoftenOk) {
       this.helpStrip.set(
-        `<b>ZIEL:</b> ${SPECIES[this.focusBeast.speciesId]?.name ?? 'Bestie'} · <span class="hint">${this._bindSoftenReason}</span>`,
+        `<b>ZIEL:</b> ${speciesDef(this.focusBeast.speciesId).name} · <span class="hint">${this._bindSoftenReason}</span>`,
       );
     } else if (this.focusBeast && this._bindSoftenOk) {
       this.helpStrip.set(
@@ -1121,8 +1156,8 @@ export class Game {
     this.audio.playUI();
     if (msg.includes('iron-bound') || msg.includes('Rune') || msg.includes('Focus')) {
       this.grantMilestone('wand');
-      this.viewWand.setTier(Math.min(2, this.wand.tier) as 0 | 1 | 2);
-      this.viewWand.playBindPulse();
+      this.wandView.setTier(Math.min(2, this.wand.tier) as 0 | 1 | 2);
+      this.wandView.playBindPulse();
       this.trails.burst(this.wandOrigin(), 0xc9a227, 16, 4);
       this.shake.add(0.2);
       this.player.maxMana = 100 * this.wand.manaMul;
@@ -1147,7 +1182,9 @@ export class Game {
     } else if (id === 'boss') {
       this.inv.essence += 8;
       this.inv.ingot += 3;
-      this.hud.setJournal('Ashcrown falls to your will — or your flame. The Council will remember this den.');
+      this.hud.setJournal(
+        'Ashcrown falls to your will — or your flame. The Council will remember this den.',
+      );
     } else if (id === 'mael') {
       this.inv.essence += 6;
       this.inv.shiny_tin_bait += 2;
@@ -1156,7 +1193,7 @@ export class Game {
 
   private toggleMount() {
     const msg = this.mount.toggle(this.owned, this.player.position);
-    this.fieldParty.sync(this.owned);
+    this.party.sync(this.owned);
     this.hud.toast(msg);
     this.audio.playUI();
     if (this.mount.mounted) this.shake.add(0.1);
@@ -1208,12 +1245,7 @@ export class Game {
     }
 
     // 3) Open capture window only on focused + softenable beast
-    if (
-      this.capture.state === 'idle' &&
-      this.focusBeast &&
-      softenOk &&
-      this.captureCooldown <= 0
-    ) {
+    if (this.capture.state === 'idle' && this.focusBeast && softenOk && this.captureCooldown <= 0) {
       const quality = 1.05 + Math.random() * 0.2;
       this.capture.tryOpenWindow(this.focusBeast, true, quality);
       {
@@ -1242,8 +1274,7 @@ export class Game {
     }
 
     // Path affinity + wand tool tier
-    this.capture.pathAffinity =
-      this.path === 'vita' ? 1.05 : this.path === 'mortis' ? 1.08 : 1.0;
+    this.capture.pathAffinity = this.path === 'vita' ? 1.05 : this.path === 'mortis' ? 1.08 : 1.0;
     this.capture.toolTier = this.wand.catchToolTier;
     // First Glimmerpouch should feel fair (tutorial)
     this.capture.tutorialBoost = this.owned.length === 0;
@@ -1257,7 +1288,7 @@ export class Game {
       previewMethod,
     );
     const fitActive =
-      !!this.focusBeast &&
+      Boolean(this.focusBeast) &&
       (softenOk || this.capture.state === 'window' || this.capture.state === 'channeling');
     this.glimmer.setFit(fitActive ? liveChance : 0);
 
@@ -1296,8 +1327,8 @@ export class Game {
     let label = '';
     let beastName = 'Bestie';
     if (this.focusBeast) {
-      const sp = SPECIES[this.focusBeast.speciesId];
-      beastName = sp?.name ?? 'Bestie';
+      const sp = speciesDef(this.focusBeast.speciesId);
+      beastName = sp.name;
       if (channeling) {
         label = this.capture.holdingChannel ? '' : 'F halten';
       } else if (show) {
@@ -1309,14 +1340,14 @@ export class Game {
         label = '';
       }
     }
-    this.hud.setBondRing(show || !!this.focusBeast, channeling, label);
+    this.hud.setBondRing(show || Boolean(this.focusBeast), channeling, label);
 
     // Power compare: gold pips = you · purple = beast (tier)
     const youPower = this.playerBindPower();
     const beastPower = this.focusBeast
-      ? Math.min(3, SPECIES[this.focusBeast.speciesId]?.tier ?? 1)
+      ? Math.min(3, speciesDef(this.focusBeast.speciesId).tier)
       : 1;
-    this.crosshair.setPowerCompare(youPower, beastPower, liveChance, !!this.focusBeast);
+    this.crosshair.setPowerCompare(youPower, beastPower, liveChance, Boolean(this.focusBeast));
 
     // Channel bar: progress only (fit is world-space wedges)
     if (channeling && this.focusBeast) {
@@ -1339,7 +1370,7 @@ export class Game {
     if (result.event === 'success' && result.target) {
       this.glimmer.flashSuccess();
       this.hitMarker.pulse('bind');
-      this.viewWand.playBindPulse();
+      this.wandView.playBindPulse();
       this.feelCam.addFovKick(6);
       this.feelCam.addPunch(0.35);
       this.bindBar.setVisible(false);
@@ -1401,7 +1432,7 @@ export class Game {
   /** Prefer species best method with inventory available (for odds preview). */
   private pickBindMethod(beast: { speciesId: string } | null): CaptureMethod {
     if (!beast) return 'bond';
-    const best = SPECIES[beast.speciesId]?.bestMethods ?? [];
+    const best = speciesDef(beast.speciesId).bestMethods;
     if (best.includes('bait') && (this.inv.shiny_tin_bait > 0 || this.inv.berry_bait > 0)) {
       return 'bait';
     }
@@ -1476,12 +1507,12 @@ export class Game {
 
   private onCaptureSuccess(target: WildBeast) {
     this.audio.playCaptureSuccess();
-    const sp = SPECIES[target.speciesId];
+    const sp = speciesDef(target.speciesId);
     const fieldCount = this.owned.filter((o) => o.fieldSlot).length;
     const ob: OwnedBeast = {
       uid: uid(),
       speciesId: target.speciesId,
-      name: sp?.name ?? target.speciesId,
+      name: sp.name,
       hp: target.hp,
       maxHp: target.maxHp,
       mood: 80,
@@ -1495,13 +1526,17 @@ export class Game {
     target.mesh.visible = false;
     this.scene.remove(target.mesh);
     this.wild = this.wild.filter((w) => w.id !== target.id);
-    this.fieldParty.sync(this.owned);
-    this.floatText.spawn(this.player.position.clone().add(new THREE.Vector3(0, 2, 0)), 'GEBUNDEN!', '#6bcb8a');
+    this.party.sync(this.owned);
+    this.floatText.spawn(
+      this.player.position.clone().add(new THREE.Vector3(0, 2, 0)),
+      'GEBUNDEN!',
+      '#6bcb8a',
+    );
     this.shake.add(0.22);
     const fieldNote = ob.fieldSlot ? ' · Feldtrupp' : '';
     this.hud.toast(`${ob.name} gebunden${fieldNote}. C Jobs · X Feld · M Reittier`);
     this.hud.setJournal(
-      `${ob.name} gebunden. „${sp?.bark ?? ''}“ — C Arbeit (Sägeplatz) · X Kampf · M Reiten.`,
+      `${ob.name} gebunden. „${sp.bark || ''}“ — C Arbeit (Sägeplatz) · X Kampf · M Reiten.`,
     );
     this.grantMilestone('first_bind');
     if (this.owned.length === 1) {
@@ -1527,14 +1562,14 @@ export class Game {
     if (
       lumber &&
       !lumber.assignedBeastUid &&
-      sp?.workTags.some((t) => t.includes('lumber') || t.includes('haul'))
+      sp.workTags.some((t) => t.includes('lumber') || t.includes('haul'))
     ) {
       ob.job = 'lumber';
       ob.fieldSlot = false;
       lumber.assignedBeastUid = ob.uid;
-      this.fieldParty.sync(this.owned);
+      this.party.sync(this.owned);
       this.hud.toast(`${ob.name} → Sägeplatz (vom Feld zurück).`);
-      this.stationWorkers.sync(this.owned, this.stations);
+      this.workers.sync(this.owned, this.stations);
       this.persist(true);
     }
   }
@@ -1558,7 +1593,7 @@ export class Game {
     this.spellCd[id] = SPELLs[id].cooldown;
     this.audio.playUI();
     this.castTimer = 0.22;
-    this.viewWand.playCast(SPELLs[id].color);
+    this.wandView.playCast(SPELLs[id].color);
     this.wandMuzzle.fire(SPELLs[id].color);
     this.feelCam.addPunch(0.12);
     const dmgMul = this.spellDamageMul() * this.wand.damageMul;
@@ -1583,14 +1618,22 @@ export class Game {
         }
         target.partBroken = true;
         target.overheated = false;
-        this.floatText.spawn(target.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)), 'Interrupt', '#88aaff');
+        this.floatText.spawn(
+          target.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)),
+          'Interrupt',
+          '#88aaff',
+        );
         this.hitMarker.pulse('hit');
         this.shake.add(0.12);
       }
       if (this.mael.phase === 'duel' || this.mael.phase === 'arrive') {
         if (this.player.position.distanceTo(this.mael.position) < 5.5) {
           const killed = this.mael.takeDamage(8 * dmgMul);
-          this.floatText.spawn(this.mael.position.clone().add(new THREE.Vector3(0, 2, 0)), 'Ward!', '#c9a227');
+          this.floatText.spawn(
+            this.mael.position.clone().add(new THREE.Vector3(0, 2, 0)),
+            'Ward!',
+            '#c9a227',
+          );
           this.hitMarker.pulse('hit');
           if (killed) this.onMaelDown();
         }
@@ -1631,7 +1674,7 @@ export class Game {
   private onMaelDown() {
     this.grantMilestone('mael');
     this.hud.toast('Inquisitor Mael fällt — oder flieht in Paragraphen.');
-    this.hud.setJournal('You bloodied the Council\'s polite knife. Heat will answer.');
+    this.hud.setJournal("You bloodied the Council's polite knife. Heat will answer.");
     this.heat.add(12, 'mael');
     this.audio.playBoss();
     this.shake.add(0.5);
@@ -1670,8 +1713,9 @@ export class Game {
       this.owned.find((o) => !o.fieldSlot && (!o.job || o.job === 'idle')) ??
       this.owned.find((o) => !o.fieldSlot) ??
       this.owned[0];
+    if (!candidate) return;
     const msg = toggleFieldSlot(this.owned, candidate.uid);
-    this.fieldParty.sync(this.owned);
+    this.party.sync(this.owned);
     this.hud.toast(msg);
     this.audio.playUI();
   }
@@ -1698,7 +1742,7 @@ export class Game {
     // Green = can pay · red = cannot (read before E)
     const tint = affordable ? 0x5dffb0 : 0xff6b6b;
     this.buildGhost.traverse((c) => {
-      if (c instanceof THREE.Mesh && c.material) {
+      if (c instanceof THREE.Mesh) {
         const src = c.material as THREE.MeshStandardMaterial;
         if (!c.userData._ghostMat) {
           const m = src.clone();
@@ -1709,11 +1753,9 @@ export class Game {
         }
         const m = c.material as THREE.MeshStandardMaterial;
         m.opacity = 0.42;
-        if (m.color) m.color.setHex(tint);
-        if (m.emissive) {
-          m.emissive.setHex(tint);
-          m.emissiveIntensity = 0.25;
-        }
+        m.color.setHex(tint);
+        m.emissive.setHex(tint);
+        m.emissiveIntensity = 0.25;
       }
     });
     const pos = this.player.position.clone().add(this.player.forward.clone().multiplyScalar(2.5));
@@ -1738,20 +1780,29 @@ export class Game {
   }
 
   private cycleBuild() {
-    const order: Station['kind'][] = ['bed', 'storage', 'pen', 'lumber', 'workbench', 'smelter', 'tower'];
+    const order: Station['kind'][] = [
+      'bed',
+      'storage',
+      'pen',
+      'lumber',
+      'workbench',
+      'smelter',
+      'tower',
+    ];
     this.clearBuildGhost();
     if (!this.buildMode) {
       this.buildMode = 'bed';
     } else {
       const i = order.indexOf(this.buildMode);
-      if (i >= order.length - 1) {
+      const next = i >= 0 ? at(order, i + 1) : undefined;
+      if (next === undefined) {
         this.buildMode = null;
         this.hud.toast('Baumodus aus.');
         return;
       }
-      this.buildMode = order[i + 1];
+      this.buildMode = next;
     }
-    const de = STATION_DE[this.buildMode!] ?? this.buildMode;
+    const de = STATION_DE[this.buildMode!];
     const costStr = this.formatCostDe(this.buildMode!);
     const ok = canAfford(this.inv, this.buildMode!);
     this.hud.toast(
@@ -1780,7 +1831,7 @@ export class Game {
     // placeStation always spawns — cost already paid above (do not re-check canAfford)
     this.placeStation(kind, pos);
     this.audio.playBuild();
-    const deName = STATION_DE[kind] ?? kind;
+    const deName = STATION_DE[kind];
     this.hud.toast(`${deName} gebaut — bleibt stehen (Turm nur bei Raid-Zerstörung).`);
     if (kind === 'tower') {
       const t = this.heat.onTowerBuilt();
@@ -1844,7 +1895,7 @@ export class Game {
     mesh.add(ring);
 
     // Floating German name on permanent builds
-    const de = STATION_DE[kind] ?? kind;
+    const de = STATION_DE[kind];
     mesh.add(makeStationLabel(de));
 
     this.scene.add(mesh);
@@ -1885,7 +1936,7 @@ export class Game {
     fieldBtn.textContent = b.fieldSlot ? 'Vom Feld zurückrufen' : 'In den Feldtrupp';
     fieldBtn.onclick = () => {
       const msg = toggleFieldSlot(this.owned, b.uid);
-      this.fieldParty.sync(this.owned);
+      this.party.sync(this.owned);
       this.hud.toast(msg);
       document.getElementById('assign-modal')!.classList.remove('show');
       this.audio.playUI();
@@ -1924,8 +1975,8 @@ export class Game {
           const st = this.stations.find((s) => s.kind === 'smelter' && !s.assignedBeastUid);
           if (st) st.assignedBeastUid = b.uid;
         }
-        this.fieldParty.sync(this.owned);
-        this.stationWorkers.sync(this.owned, this.stations);
+        this.party.sync(this.owned);
+        this.workers.sync(this.owned, this.stations);
         document.getElementById('assign-modal')!.classList.remove('show');
         if (b.job === 'lumber' || b.job === 'smelt') {
           const t = this.heat.onFirstWorker();
@@ -1948,7 +1999,7 @@ export class Game {
     if (!st) return;
     const stack = st.mesh.getObjectByName('woodStack');
     if (stack) {
-      const n = ((stack.userData.grow as number) ?? 1) + 0.15;
+      const n = ((stack.userData.grow as number | undefined) ?? 1) + 0.15;
       stack.userData.grow = Math.min(2.2, n);
       stack.scale.set(1, stack.userData.grow, 1);
     }
@@ -2011,7 +2062,11 @@ export class Game {
     ring.position.y = 0.2;
     const pillar = new THREE.Mesh(
       new THREE.CylinderGeometry(0.4, 0.55, 3.2, 6),
-      new THREE.MeshStandardMaterial({ color: 0x2a2438, emissive: 0x4a3080, emissiveIntensity: 0.3 }),
+      new THREE.MeshStandardMaterial({
+        color: 0x2a2438,
+        emissive: 0x4a3080,
+        emissiveIntensity: 0.3,
+      }),
     );
     pillar.position.y = 1.6;
     g.add(ring, pillar);
@@ -2116,12 +2171,10 @@ export class Game {
     const glow = new THREE.PointLight(0xc9a227, 0.6, 6, 2);
     glow.position.y = 0.4;
     g.add(paper, pin, glow);
-    const p = this.player.position
-      .clone()
-      .add(this.player.forward.clone().multiplyScalar(2.2));
+    const p = this.player.position.clone().add(this.player.forward.clone().multiplyScalar(2.2));
     p.y = 0;
     // Prefer near Discarding Stones if still at camp
-    if (this.world?.stonesCenter) {
+    {
       const d = this.player.position.distanceTo(this.world.stonesCenter);
       if (d < 18) {
         p.copy(this.world.stonesCenter).add(new THREE.Vector3(-2.5, 0, 1.5));
@@ -2133,10 +2186,10 @@ export class Game {
   }
 
   private updateHealthBars() {
-    const bars: import('../ui/BeastBars').BarTarget[] = [];
+    const bars: BarTarget[] = [];
     for (const w of [...this.wild, ...this.raid.getTargets()]) {
       if (w.hp <= 0 || w.state === 'captured') continue;
-      const sp = SPECIES[w.speciesId];
+      const sp = speciesDef(w.speciesId);
       const focused = this.focusBeast?.id === w.id;
       bars.push({
         id: w.id,
@@ -2145,8 +2198,8 @@ export class Game {
         hp: w.hp,
         maxHp: w.maxHp,
         kind: 'enemy',
-        label: focused ? `▶ ${sp?.name ?? 'Ziel'}` : sp?.name ?? 'Gegner',
-        tier: sp?.tier ?? 1,
+        label: focused ? `▶ ${sp.name}` : sp.name,
+        tier: sp.tier,
       });
     }
     if (this.mael.phase === 'duel' || this.mael.phase === 'arrive') {
@@ -2161,10 +2214,10 @@ export class Game {
         tier: 3,
       });
     }
-    for (const c of this.fieldParty.companions) {
+    for (const c of this.party.companions) {
       const owned = this.owned.find((o) => o.uid === c.ownedUid);
-      const sp = SPECIES[c.speciesId];
-      const maxHp = owned?.maxHp ?? sp?.stats.hp ?? 50;
+      const sp = speciesDef(c.speciesId);
+      const maxHp = owned?.maxHp ?? sp.stats.hp;
       const hp = owned?.hp ?? maxHp;
       bars.push({
         id: `ally_${c.ownedUid}`,
@@ -2173,15 +2226,15 @@ export class Game {
         hp,
         maxHp,
         kind: 'ally',
-        label: owned?.name ?? sp?.name ?? 'Begleiter',
+        label: owned?.name ?? sp.name,
       });
     }
-    this.beastBars.update(bars, this.player.position, 24);
+    this.bars.update(bars, this.player.position, 24);
   }
 
   private updatePrompt() {
     if (this.buildMode) {
-      const de = STATION_DE[this.buildMode] ?? this.buildMode;
+      const de = STATION_DE[this.buildMode];
       const ok = canAfford(this.inv, this.buildMode);
       this.hud.setPrompt(
         `Bauen: ${de} (${this.formatCostDe(this.buildMode)}) — ${ok ? 'E platzieren' : 'zu teuer'} · B wechseln`,
@@ -2190,18 +2243,18 @@ export class Game {
     }
     // Binding is the main loop — prioritize glimmer focus messaging
     if (this.capture.state === 'channeling' && this.focusBeast) {
-      const n = SPECIES[this.focusBeast.speciesId]?.name ?? 'Bestie';
+      const n = speciesDef(this.focusBeast.speciesId).name;
       const pct = Math.floor(this.capture.channelProgress * 100);
       this.hud.setPrompt(`⬆ F HALTEN — ${n} wird gebunden… ${pct}%`);
       return;
     }
     if (this.capture.state === 'window' && this.focusBeast) {
-      const n = SPECIES[this.focusBeast.speciesId]?.name ?? 'Bestie';
+      const n = speciesDef(this.focusBeast.speciesId).name;
       this.hud.setPrompt(`✦ GRÜNER Glimmer → ${n} — F drücken & HALTEN`);
       return;
     }
     if (this.focusBeast) {
-      const n = SPECIES[this.focusBeast.speciesId]?.name ?? 'Bestie';
+      const n = speciesDef(this.focusBeast.speciesId).name;
       if (this._bindSoftenOk) {
         this.hud.setPrompt(`✦ ${n} bereit — F zum Binden`);
       } else {
@@ -2213,7 +2266,7 @@ export class Game {
     }
     const g = this._nearGather;
     if (g.full || g.node) {
-      this.hud.setPrompt(gatherPrompt(g.node, false, 0, !!g.full, g.kind ?? g.node?.kind));
+      this.hud.setPrompt(gatherPrompt(g.node, false, 0, Boolean(g.full), g.kind ?? g.node?.kind));
       return;
     }
     if (this.inSealEcho()) {
@@ -2224,9 +2277,7 @@ export class Game {
       this.hud.setPrompt('Amphitheater — V für Vita / Mortis');
       return;
     }
-    this.hud.setPrompt(
-      `◆ ${this.objective}  ·  Bestie anschauen = Glimmer-Strahl wählt Ziel`,
-    );
+    this.hud.setPrompt(`◆ ${this.objective}  ·  Bestie anschauen = Glimmer-Strahl wählt Ziel`);
   }
 
   private compassCardinal(from: THREE.Vector3, to: THREE.Vector3): string {
@@ -2235,8 +2286,9 @@ export class Game {
     // 0° = north (-Z), clockwise
     const ang = Math.atan2(dx, -dz);
     const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const idx = Math.round((((ang % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) / (Math.PI / 4)) % 8;
-    return dirs[idx];
+    const idx =
+      Math.round((((ang % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) / (Math.PI / 4)) % 8;
+    return at(dirs, idx) ?? 'N';
   }
 
   private formatCompass(label: string, target: THREE.Vector3): string {

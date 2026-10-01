@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Inventory, ResourceNode } from '../core/types';
 import { INVENTORY_CAPS } from '../core/types';
 import { RESOURCE_INFO } from './ResourceLabels';
+import { at } from '../core/util';
 
 function mulberry32(a: number) {
   return function () {
@@ -43,7 +44,13 @@ export function spawnResources(scene: THREE.Scene, count = 55): ResourceNode[] {
   const makeNode = (kind: ResourceNode['kind'], x: number, z: number, id: string) => {
     const group = new THREE.Group();
     const ringCol =
-      kind === 'wood' ? 0xc4a574 : kind === 'stone' ? 0x8899aa : kind === 'herb' ? 0x3dcc6e : 0x6a8ab8;
+      kind === 'wood'
+        ? 0xc4a574
+        : kind === 'stone'
+          ? 0x8899aa
+          : kind === 'herb'
+            ? 0x3dcc6e
+            : 0x6a8ab8;
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(0.55, 0.75, 20),
       new THREE.MeshBasicMaterial({
@@ -131,7 +138,7 @@ export function spawnResources(scene: THREE.Scene, count = 55): ResourceNode[] {
   }
 
   for (let i = 0; i < count; i++) {
-    const kind = kinds[i % kinds.length];
+    const kind = at(kinds, i % kinds.length) ?? 'wood';
     const ang = rng() * Math.PI * 2;
     const rad = 10 + rng() * 68;
     nodes.push(makeNode(kind, Math.cos(ang) * rad, Math.sin(ang) * rad, String(idx++)));

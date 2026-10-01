@@ -3,13 +3,9 @@ import * as THREE from 'three';
 import { emptyInventory, INVENTORY_CAPS } from '../core/types';
 import type { ResourceNode } from '../core/types';
 import { canCarry, isStackFull, tryGather, gatherPrompt } from './Resources';
+import { at } from '../core/util';
 
-function mockNode(
-  kind: ResourceNode['kind'],
-  x: number,
-  z: number,
-  remaining = 1,
-): ResourceNode {
+function mockNode(kind: ResourceNode['kind'], x: number, z: number, remaining = 1): ResourceNode {
   const mesh = new THREE.Group();
   mesh.visible = true;
   mesh.position.set(x, 0, z);
@@ -42,8 +38,8 @@ describe('Resources walk-over gather (shipped)', () => {
     expect(r.gained).toBeTruthy();
     expect(r.kind).toBe('wood');
     expect(inv.wood).toBe(2); // AMOUNTS.wood
-    expect(nodes[0].remaining).toBe(0);
-    expect(nodes[0].mesh.visible).toBe(false);
+    expect(at(nodes, 0)?.remaining).toBe(0);
+    expect(at(nodes, 0)?.mesh.visible).toBe(false);
   });
 
   it('tryGather blocks when stack is full (no free pickup)', () => {
@@ -54,7 +50,7 @@ describe('Resources walk-over gather (shipped)', () => {
     const r = tryGather(nodes, player, inv, 0.016);
     expect(r.gained).toBeNull();
     expect(r.full).toBe(true);
-    expect(nodes[0].remaining).toBe(1);
+    expect(at(nodes, 0)?.remaining).toBe(1);
     expect(inv.wood).toBe(INVENTORY_CAPS.wood);
   });
 
@@ -65,7 +61,7 @@ describe('Resources walk-over gather (shipped)', () => {
     const r = tryGather(nodes, player, inv, 0.016);
     expect(r.gained).toBeNull();
     expect(inv.wood).toBe(0);
-    expect(nodes[0].remaining).toBe(1);
+    expect(at(nodes, 0)?.remaining).toBe(1);
   });
 
   it('gatherPrompt reports full inventory in German', () => {

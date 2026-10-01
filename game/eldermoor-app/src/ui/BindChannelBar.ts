@@ -16,7 +16,6 @@ export class BindChannelBar {
   private displayProgress = 0;
   private targetProgress = 0;
   private holding = false;
-  private beastName = '';
   private pulseT = 0;
   private chanceEl: HTMLElement | null = null;
   private chancePct = 0;
@@ -294,7 +293,6 @@ export class BindChannelBar {
   setProgress(progress: number, beastName: string, holding: boolean, catchChance = 0): void {
     this.targetProgress = Math.max(0, Math.min(1, progress));
     this.chancePct = Math.max(0, Math.min(1, catchChance));
-    this.beastName = beastName;
     this.holding = holding;
     this.titleEl.textContent = beastName;
     this.root.classList.toggle('holding', holding);

@@ -37,7 +37,11 @@ export class Player {
     hood.position.y = 1.75;
     const wand = new THREE.Mesh(
       new THREE.CylinderGeometry(0.03, 0.04, 0.7, 6),
-      new THREE.MeshStandardMaterial({ color: 0xc9a227, emissive: 0xc9a227, emissiveIntensity: 0.3 }),
+      new THREE.MeshStandardMaterial({
+        color: 0xc9a227,
+        emissive: 0xc9a227,
+        emissiveIntensity: 0.3,
+      }),
     );
     wand.position.set(0.45, 1.1, 0.1);
     wand.rotation.z = Math.PI / 5;
@@ -46,7 +50,12 @@ export class Player {
     // Soft body shadow blob
     const shadow = new THREE.Mesh(
       new THREE.CircleGeometry(0.55, 16),
-      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false }),
+      new THREE.MeshBasicMaterial({
+        color: 0x000000,
+        transparent: true,
+        opacity: 0.35,
+        depthWrite: false,
+      }),
     );
     shadow.rotation.x = -Math.PI / 2;
     shadow.position.y = 0.03;

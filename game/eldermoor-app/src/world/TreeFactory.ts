@@ -1,6 +1,7 @@
+import type * as THREE from 'three';
 import type { Group, Texture } from 'three';
 
-type ThreeModule = typeof import('three');
+type ThreeModule = typeof THREE;
 
 /**
  * Low-poly prop factory for Eldermoor glade flora/rocks.
@@ -84,12 +85,7 @@ export function createTree(
     // Twisted oak — short fat trunk + offset spheres + small branch stub
     const fatR = trunkR * 1.25;
     trunk.geometry.dispose();
-    trunk.geometry = new THREE.CylinderGeometry(
-      fatR * 0.7,
-      fatR * 1.15,
-      trunkH * 0.9,
-      6,
-    );
+    trunk.geometry = new THREE.CylinderGeometry(fatR * 0.7, fatR * 1.15, trunkH * 0.9, 6);
     trunk.position.y = trunkH * 0.45;
 
     const branch = new THREE.Mesh(
@@ -117,11 +113,7 @@ export function createTree(
   return group;
 }
 
-export function createRock(
-  THREE: ThreeModule,
-  rng: () => number,
-  stoneMap: Texture,
-): Group {
+export function createRock(THREE: ThreeModule, rng: () => number, stoneMap: Texture): Group {
   const group = new THREE.Group();
   group.name = 'rock';
 
@@ -135,7 +127,7 @@ export function createRock(
 
   const style = rng();
   const w = 0.55 + rng() * 1.35;
-  const h = 0.35 + rng() * 1.0;
+  const h = 0.35 + rng();
   const d = 0.5 + rng() * 1.15;
 
   if (style < 0.45) {
@@ -171,11 +163,7 @@ export function createRock(
   return group;
 }
 
-export function createBush(
-  THREE: ThreeModule,
-  rng: () => number,
-  leafMap: Texture,
-): Group {
+export function createBush(THREE: ThreeModule, rng: () => number, leafMap: Texture): Group {
   const group = new THREE.Group();
   group.name = 'bush';
 

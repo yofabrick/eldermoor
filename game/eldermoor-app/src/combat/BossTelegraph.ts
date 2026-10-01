@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { at } from '../core/util';
 
 export type TelegraphShape = 'circle' | 'cone';
 
@@ -148,7 +149,8 @@ export class BossTelegraph {
   /** Animate fill 0→1, then danger flash, then remove. */
   update(dt: number): void {
     for (let i = this.active.length - 1; i >= 0; i--) {
-      const t = this.active[i];
+      const t = at(this.active, i);
+      if (t === undefined) continue;
       if (t.phase === 0) {
         t.age += dt;
         const fill = Math.min(1, t.age / t.duration);

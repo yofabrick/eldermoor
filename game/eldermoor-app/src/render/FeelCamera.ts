@@ -28,10 +28,7 @@ export class FeelCamera {
   ) {
     // FOV: sprint/gallop opens up
     const targetFov =
-      this.baseFov +
-      (opts.sprinting ? 8 : 0) +
-      (opts.mounted ? 4 : 0) +
-      (opts.speed > 10 ? 3 : 0);
+      this.baseFov + (opts.sprinting ? 8 : 0) + (opts.mounted ? 4 : 0) + (opts.speed > 10 ? 3 : 0);
     this.fov = THREE.MathUtils.lerp(this.fov, targetFov, 1 - Math.pow(0.001, dt));
     this.camera.fov = this.fov;
     this.camera.updateProjectionMatrix();

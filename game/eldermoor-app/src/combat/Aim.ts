@@ -89,11 +89,16 @@ export function getWardTarget(
   beasts: WildBeast[],
   range = 5,
 ): WildBeast | null {
-  const { dir, locked } = getCombatAim(camera, playerPos.clone().add(new THREE.Vector3(0, 1.2, 0)), beasts, {
-    maxDist: range + 2,
-    assistRadius: 1.8,
-    assistAngle: 0.35,
-  });
+  const { dir, locked } = getCombatAim(
+    camera,
+    playerPos.clone().add(new THREE.Vector3(0, 1.2, 0)),
+    beasts,
+    {
+      maxDist: range + 2,
+      assistRadius: 1.8,
+      assistAngle: 0.35,
+    },
+  );
   if (locked && playerPos.distanceTo(locked.mesh.position) <= range + 0.5) return locked;
 
   let best: WildBeast | null = null;

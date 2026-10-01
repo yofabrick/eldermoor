@@ -25,10 +25,13 @@ export class TargetHighlight {
       this.capture(beast);
     }
     this.pulse += 0.08;
-    const col =
-      mode === 'channeling' ? 0xffe08a : mode === 'ready' ? 0x5dffb0 : 0x8a7cff;
+    const col = mode === 'channeling' ? 0xffe08a : mode === 'ready' ? 0x5dffb0 : 0x8a7cff;
     const inten =
-      mode === 'channeling' ? 0.55 + Math.sin(this.pulse * 8) * 0.25 : mode === 'ready' ? 0.4 : 0.22;
+      mode === 'channeling'
+        ? 0.55 + Math.sin(this.pulse * 8) * 0.25
+        : mode === 'ready'
+          ? 0.4
+          : 0.22;
     this.apply(beast, col, inten);
   }
 
@@ -52,7 +55,7 @@ export class TargetHighlight {
 
   resetLift(beast: WildBeast | null) {
     if (!beast) return;
-    const ground = (beast.mesh.userData._groundY as number) ?? beast.mesh.position.y;
+    const ground = (beast.mesh.userData._groundY as number | undefined) ?? beast.mesh.position.y;
     beast.mesh.position.y = ground;
     const base = (beast.mesh.userData.baseScale as number) || 1;
     beast.mesh.scale.setScalar(base);

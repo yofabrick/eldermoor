@@ -16,7 +16,7 @@ export class Input {
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     target.addEventListener('click', () => {
-      if (!this.pointerLocked) target.requestPointerLock?.();
+      if (!this.pointerLocked) target.requestPointerLock();
     });
     target.addEventListener('mousedown', (e) => {
       if (e.button === 0) {

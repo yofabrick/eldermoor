@@ -1,6 +1,6 @@
 import type * as THREE_NS from 'three';
 import type { WildBeast } from '../core/types';
-import { SPECIES } from '../data/species';
+import { speciesDef } from '../data/species';
 
 type THREE = typeof THREE_NS;
 
@@ -46,7 +46,7 @@ function addPart(
 
 /** Stylized low-poly creature mesh colored/scaled by SPECIES. Distinct silhouettes per id. */
 export function createBeastMesh(speciesId: string, THREE: THREE): THREE_NS.Group {
-  const def = SPECIES[speciesId] ?? SPECIES.B01;
+  const def = speciesDef(speciesId);
   const color = def.color;
   const scale = def.scale;
   const group = new THREE.Group();
@@ -73,7 +73,12 @@ export function createBeastMesh(speciesId: string, THREE: THREE): THREE_NS.Group
       addPart(group, pouch, 0, 0.42, 0.42);
       const gem = new THREE.Mesh(
         new THREE.OctahedronGeometry(0.16, 0),
-        mat(THREE, 0xfff6c8, { emissive: 0xffe08a, emissiveIntensity: 1.1, roughness: 0.2, metalness: 0.45 }),
+        mat(THREE, 0xfff6c8, {
+          emissive: 0xffe08a,
+          emissiveIntensity: 1.1,
+          roughness: 0.2,
+          metalness: 0.45,
+        }),
       );
       addPart(group, gem, 0, 0.55, 0.78);
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.36, 8, 7), bodyMat);
@@ -253,11 +258,44 @@ export function createBeastMesh(speciesId: string, THREE: THREE): THREE_NS.Group
     case 'B09': {
       // Ridgespire — proud avian mount
       addPart(group, new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 10), bodyMat), 0, 0.7, 0);
-      addPart(group, new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.5, 6), darkMat), 0, 1.1, 0.35, Math.PI / 2, 0, 0);
-      addPart(group, new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.08, 0.5), accentMat), 0, 1.0, -0.1);
-      addPart(group, new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.7, 0.15), darkMat), 0.25, 0.35, 0.15);
-      addPart(group, new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.7, 0.15), darkMat), -0.25, 0.35, 0.15);
-      addPart(group, new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.35, 5), accentMat), 0, 1.35, 0.2);
+      addPart(
+        group,
+        new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.5, 6), darkMat),
+        0,
+        1.1,
+        0.35,
+        Math.PI / 2,
+        0,
+        0,
+      );
+      addPart(
+        group,
+        new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.08, 0.5), accentMat),
+        0,
+        1.0,
+        -0.1,
+      );
+      addPart(
+        group,
+        new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.7, 0.15), darkMat),
+        0.25,
+        0.35,
+        0.15,
+      );
+      addPart(
+        group,
+        new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.7, 0.15), darkMat),
+        -0.25,
+        0.35,
+        0.15,
+      );
+      addPart(
+        group,
+        new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.35, 5), accentMat),
+        0,
+        1.35,
+        0.2,
+      );
       break;
     }
     case 'B12': {
@@ -270,7 +308,10 @@ export function createBeastMesh(speciesId: string, THREE: THREE): THREE_NS.Group
       addPart(group, snout, 0, 0.85, 0.9);
       // Crown spikes
       for (let i = -2; i <= 2; i++) {
-        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.28 + Math.abs(i) * 0.04, 5), accentMat);
+        const spike = new THREE.Mesh(
+          new THREE.ConeGeometry(0.06, 0.28 + Math.abs(i) * 0.04, 5),
+          accentMat,
+        );
         addPart(group, spike, i * 0.1, 1.28, 0.5 - Math.abs(i) * 0.02);
       }
       for (const sx of [-1, 1]) {
@@ -326,7 +367,8 @@ export function createBeastMesh(speciesId: string, THREE: THREE): THREE_NS.Group
 
   // Tiny eyes on non-hero forms only (B01–B03 already have large eyes)
   if (speciesId !== 'B01' && speciesId !== 'B02' && speciesId !== 'B03') {
-    const eyeY = speciesId === 'B07' ? 1.4 : speciesId === 'B06' ? 1.3 : speciesId === 'B12' ? 1.05 : 0.9;
+    const eyeY =
+      speciesId === 'B07' ? 1.4 : speciesId === 'B06' ? 1.3 : speciesId === 'B12' ? 1.05 : 0.9;
     const eyeZ = speciesId === 'B04' ? 0.7 : 0.35;
     for (const sx of [-0.1, 0.1]) {
       const eye = new THREE.Mesh(new THREE.SphereGeometry(0.05, 4, 4), eyeMat);
@@ -360,7 +402,7 @@ export function createWildBeast(
   position: THREE_NS.Vector3,
   THREE: THREE,
 ): WildBeast {
-  const def = SPECIES[speciesId] ?? SPECIES.B01;
+  const def = speciesDef(speciesId);
   const mesh = createBeastMesh(def.id, THREE);
   const groundY = def.scale * 0.5;
   mesh.position.set(position.x, groundY, position.z);

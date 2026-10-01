@@ -23,7 +23,12 @@ export interface Milestone {
 export class Campaign {
   milestones: Milestone[] = [
     { id: 'gather', title: 'Holz sammeln (über braune Stämme laufen)', done: false },
-    { id: 'first_bind', title: 'Erste Bestie fangen (Bond-Ring + F)', done: false, reward: '+2 Fallen' },
+    {
+      id: 'first_bind',
+      title: 'Erste Bestie fangen (Bond-Ring + F)',
+      done: false,
+      reward: '+2 Fallen',
+    },
     { id: 'lumber', title: 'Sägeplatz bauen + Arbeiter (C)', done: false, reward: '+5 Holz' },
     { id: 'field', title: 'Begleiter ins Feld (X) — grüner Balken', done: false },
     { id: 'path', title: 'Vita oder Mortis wählen (V)', done: false, reward: 'Pfad-Power' },

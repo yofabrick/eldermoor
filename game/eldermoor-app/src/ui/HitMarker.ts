@@ -3,7 +3,6 @@
 export class HitMarker {
   private el: HTMLDivElement;
   private timer = 0;
-  private kill = false;
 
   constructor() {
     let el = document.getElementById('hitmarker') as HTMLDivElement | null;
@@ -36,7 +35,6 @@ export class HitMarker {
   /** kind: hit | kill | bind */
   pulse(kind: 'hit' | 'kill' | 'bind' = 'hit') {
     this.timer = kind === 'kill' ? 0.28 : 0.14;
-    this.kill = kind === 'kill';
     this.el.classList.remove('kill', 'bind');
     if (kind === 'kill') this.el.classList.add('kill');
     if (kind === 'bind') this.el.classList.add('bind');

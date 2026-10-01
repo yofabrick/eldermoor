@@ -11,7 +11,7 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-type ThreeMod = typeof import('three');
+type ThreeMod = typeof THREE;
 
 export interface AmbientPropsOpts {
   seed?: number;
@@ -184,10 +184,7 @@ export function scatterAmbientProps(
     const cluster = 1 + Math.floor(rng() * 3);
     for (let j = 0; j < cluster; j++) {
       const h = 0.12 + rng() * 0.22;
-      const stem = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.03, 0.045, h, 5),
-        mushroomStemMat,
-      );
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.045, h, 5), mushroomStemMat);
       stem.position.set((rng() - 0.5) * 0.25, h * 0.5, (rng() - 0.5) * 0.25);
       stem.castShadow = true;
       const capR = 0.08 + rng() * 0.12;
@@ -320,10 +317,7 @@ function makeTorch(
  * Soft godray-ish stack of transparent cones for the Discarding Stones tutorial landmark.
  * Does not auto-add to the scene — caller parents/places as needed.
  */
-export function createDiscardingStoneGlow(
-  THREE: ThreeMod,
-  position: THREE.Vector3,
-): THREE.Group {
+export function createDiscardingStoneGlow(THREE: ThreeMod, position: THREE.Vector3): THREE.Group {
   const group = new THREE.Group();
   group.name = 'discarding_stone_glow';
 

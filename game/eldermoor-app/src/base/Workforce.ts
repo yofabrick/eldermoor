@@ -1,5 +1,5 @@
 import type { Inventory, OwnedBeast, Station } from '../core/types';
-import { SPECIES } from '../data/species';
+import { speciesDef } from '../data/species';
 
 /** Fodder drained per working second. 5 fodder ≈ 4+ minutes of continuous work. */
 const FODDER_PER_WORK = 0.02;
@@ -65,8 +65,8 @@ export class Workforce {
         continue;
       }
 
-      const sp = SPECIES[beast.speciesId];
-      const wrk = sp?.stats.wrk ?? 1;
+      const sp = speciesDef(beast.speciesId);
+      const wrk = sp.stats.wrk;
       const speed = Math.max(0.05, beast.mood / 100);
 
       switch (job) {
