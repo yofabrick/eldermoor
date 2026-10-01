@@ -118,6 +118,24 @@ function makeStationLabel(text: string): THREE.Sprite {
   return spr;
 }
 
+/** Read-only pose for the browser end-to-end run. Not consulted by gameplay. */
+export interface E2EProbe {
+  running: boolean;
+  x: number;
+  z: number;
+  yaw: number;
+  pitch: number;
+  wood: number;
+  stone: number;
+  heat: number;
+  ownedNames: string[];
+  focusName: string | null;
+  capture: string;
+  stations: number;
+  resources: { kind: string; x: number; z: number; remaining: number }[];
+  beasts: { speciesId: string; name: string; x: number; z: number; hp: number }[];
+}
+
 export class Game {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
@@ -2397,5 +2415,56 @@ export class Game {
       this.hud.toast('Fortschritt gesichert (lokaler Speicher).');
       this.audio.playUI();
     }
+  }
+
+  /** Snapshot for `?e2e=1`. Steering and asserts in the browser test read this; they still press real keys. */
+  probe(): E2EProbe {
+    if (!this.running) {
+      return {
+        running: false,
+        x: 0,
+        z: 0,
+        yaw: 0,
+        pitch: 0,
+        wood: 0,
+        stone: 0,
+        heat: 0,
+        ownedNames: [],
+        focusName: null,
+        capture: 'idle',
+        stations: 0,
+        resources: [],
+        beasts: [],
+      };
+    }
+    return {
+      running: true,
+      x: this.player.position.x,
+      z: this.player.position.z,
+      yaw: this.player.yaw,
+      pitch: this.player.pitch,
+      wood: this.inv.wood,
+      stone: this.inv.stone,
+      heat: this.heat.heat,
+      ownedNames: this.owned.map((o) => o.name),
+      focusName: this.focusBeast == null ? null : speciesDef(this.focusBeast.speciesId).name,
+      capture: this.capture.state,
+      stations: this.stations.length,
+      resources: this.resources.map((n) => ({
+        kind: n.kind,
+        x: n.position.x,
+        z: n.position.z,
+        remaining: n.remaining,
+      })),
+      beasts: this.wild
+        .filter((b) => b.hp > 0 && b.state !== 'captured')
+        .map((b) => ({
+          speciesId: b.speciesId,
+          name: b.name,
+          x: b.position.x,
+          z: b.position.z,
+          hp: b.hp,
+        })),
+    };
   }
 }

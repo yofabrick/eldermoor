@@ -16,7 +16,7 @@ npm run dev
 
 | Key | Action |
 |-----|--------|
-| **WASD** / **Mouse** | Move / look (click lock) |
+| **WASD** / **Mouse** / **Arrows** | Move / look (click lock, or arrows without lock) |
 | **Space** | Dash · mount gallop |
 | **E** | Gather · place build |
 | **F** | Capture (Bond Ring) |
