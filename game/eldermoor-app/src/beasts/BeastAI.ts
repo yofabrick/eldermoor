@@ -52,7 +52,7 @@ export class BeastAI {
     const mesh = beast.mesh;
     const spawn: THREE_NS.Vector3 =
       (mesh.userData.spawn as THREE_NS.Vector3 | undefined) ?? mesh.position.clone();
-    if (!mesh.userData.spawn) mesh.userData.spawn = spawn.clone();
+    if (mesh.userData.spawn == null) mesh.userData.spawn = spawn.clone();
 
     // B04: periodically overheat while HP is high
     if (beast.speciesId === 'B04' && beast.hp / beast.maxHp > 0.55) {
@@ -65,7 +65,7 @@ export class BeastAI {
       }
     }
 
-    if (opts.inLight && beast.speciesId === 'B03') {
+    if (opts.inLight === true && beast.speciesId === 'B03') {
       beast.calmed = true;
     }
 
@@ -284,10 +284,10 @@ export class BeastAI {
         return { ok: true, reason: 'Ruhig — F halten!' };
       }
       case 'B04': {
-        if (methodHints.doused) {
+        if (methodHints.doused === true) {
           beast.overheated = false;
         }
-        if (beast.overheated && !methodHints.doused) {
+        if (beast.overheated && methodHints.doused !== true) {
           return { ok: false, reason: 'Überhitzt — Ward (2) zum Kühlen' };
         }
         if (hpRatio > 0.9) {
@@ -314,7 +314,7 @@ export class BeastAI {
         return { ok: true, reason: 'Respekt gezollt — F halten!' };
       }
       case 'B12': {
-        if (beast.mesh.userData.bossCaptureReady) {
+        if (beast.mesh.userData.bossCaptureReady === true) {
           return { ok: true, reason: 'Krone offen — JETZT F HALTEN!' };
         }
         if (hpRatio > 0.55) {

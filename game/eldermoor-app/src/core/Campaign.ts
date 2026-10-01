@@ -1,5 +1,7 @@
 /** Milestone-driven objectives and rewards for the greybox campaign. */
 
+import { hasText } from './util';
+
 export type MilestoneId =
   | 'gather'
   | 'first_bind'
@@ -54,7 +56,7 @@ export class Campaign {
     const m = this.milestones.find((x) => x.id === id);
     if (!m || m.done) return null;
     m.done = true;
-    const reward = m.reward ? ` Belohnung: ${m.reward}` : '';
+    const reward = hasText(m.reward) ? ` Belohnung: ${m.reward}` : '';
     return { toast: `◆ Meilenstein: ${m.title}.${reward}`, rewardId: id };
   }
 

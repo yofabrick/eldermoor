@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { at, shift } from '../core/util';
+import { at, requireCanvas2d, shift } from '../core/util';
 
 interface Floater {
   sprite: THREE.Sprite;
@@ -102,7 +102,7 @@ export class FloatingTextSystem {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
     canvas.height = 96;
-    const ctx = canvas.getContext('2d')!;
+    const ctx = requireCanvas2d(canvas);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.font = 'bold 42px system-ui, Segoe UI, sans-serif';

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { ResourceNode } from '../core/types';
+import { requireCanvas2d } from '../core/util';
 
 /** German + clear names for what each resource is and why you need it */
 export const RESOURCE_INFO: Record<
@@ -82,7 +83,7 @@ export class ResourceLabels {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
     canvas.height = 64;
-    const ctx = canvas.getContext('2d')!;
+    const ctx = requireCanvas2d(canvas);
     ctx.clearRect(0, 0, 256, 64);
     // pill background
     ctx.fillStyle = 'rgba(11,10,18,0.88)';

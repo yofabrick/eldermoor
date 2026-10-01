@@ -9,7 +9,7 @@ export function saveGame(data: GameSave): void {
 export function loadGame(): GameSave | null {
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return null;
+    if (raw == null || raw === '') return null;
     return JSON.parse(raw) as GameSave;
   } catch {
     return null;

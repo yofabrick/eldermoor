@@ -33,7 +33,7 @@ import { getCombatAim, getWardTarget } from '../combat/Aim';
 import { HeatSystem } from '../heat/HeatSystem';
 import { WorldEvents } from '../heat/Events';
 import { STARTER_SPAWNS, speciesDef } from '../data/species';
-import { at, shift } from '../core/util';
+import { at, hasText, nonzero, requireCanvas2d, requireElement, shift } from '../core/util';
 import { AudioBus } from '../audio/AudioBus';
 import { FloatingTextSystem } from '../fx/FloatingText';
 import { flashMesh } from '../fx/HitFlash';
@@ -88,7 +88,7 @@ function makeStationLabel(text: string): THREE.Sprite {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
   canvas.height = 64;
-  const ctx = canvas.getContext('2d')!;
+  const ctx = requireCanvas2d(canvas);
   ctx.clearRect(0, 0, 256, 64);
   ctx.fillStyle = 'rgba(12,10,18,0.82)';
   ctx.beginPath();
@@ -273,12 +273,12 @@ export class Game {
   }
 
   private bindUi() {
-    document.getElementById('btn-start')!.onclick = () => {
+    requireElement('btn-start').onclick = () => {
       void this.audio.resume();
       clearSave();
       this.startNew();
     };
-    document.getElementById('btn-continue')!.onclick = () => {
+    requireElement('btn-continue').onclick = () => {
       void this.audio.resume();
       if (hasSave()) this.startLoad();
       else {
@@ -286,16 +286,16 @@ export class Game {
         this.startNew();
       }
     };
-    document.getElementById('btn-save')!.onclick = () => this.persist();
-    document.getElementById('btn-build')!.onclick = () => this.cycleBuild();
-    document.getElementById('btn-path')!.onclick = () => this.openPath();
-    document.getElementById('pick-vita')!.onclick = () => this.choosePath('vita');
-    document.getElementById('pick-mortis')!.onclick = () => this.choosePath('mortis');
-    document.getElementById('path-cancel')!.onclick = () => {
-      document.getElementById('path-modal')!.classList.remove('show');
+    requireElement('btn-save').onclick = () => this.persist();
+    requireElement('btn-build').onclick = () => this.cycleBuild();
+    requireElement('btn-path').onclick = () => this.openPath();
+    requireElement('pick-vita').onclick = () => this.choosePath('vita');
+    requireElement('pick-mortis').onclick = () => this.choosePath('mortis');
+    requireElement('path-cancel').onclick = () => {
+      requireElement('path-modal').classList.remove('show');
     };
-    document.getElementById('assign-close')!.onclick = () => {
-      document.getElementById('assign-modal')!.classList.remove('show');
+    requireElement('assign-close').onclick = () => {
+      requireElement('assign-modal').classList.remove('show');
     };
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Escape' && this.running) {
@@ -335,7 +335,7 @@ export class Game {
           c.geometry?.dispose?.();
           const mats = Array.isArray(c.material) ? c.material : [c.material];
           for (const m of mats) {
-            if (!m) continue;
+            if (m == null) continue;
             const mapKeys = [
               'map',
               'emissiveMap',
@@ -428,7 +428,7 @@ export class Game {
       }));
       this.wand.tier = save.wandTier ?? 0;
       if (save.milestonesDone) this.campaign.loadDone(save.milestonesDone);
-      if (save.maelDefeated) {
+      if (save.maelDefeated === true) {
         this.maelSummoned = true;
         this.mael.phase = 'defeated';
       }
@@ -438,10 +438,12 @@ export class Game {
       // Re-link workers to stations from owned.job (assignedBeastUid not in save blob)
       for (const o of this.owned) {
         if (o.job === 'lumber') {
-          const st = this.stations.find((s) => s.kind === 'lumber' && !s.assignedBeastUid);
+          const st = this.stations.find((s) => s.kind === 'lumber' && !hasText(s.assignedBeastUid));
           if (st) st.assignedBeastUid = o.uid;
         } else if (o.job === 'smelt') {
-          const st = this.stations.find((s) => s.kind === 'smelter' && !s.assignedBeastUid);
+          const st = this.stations.find(
+            (s) => s.kind === 'smelter' && !hasText(s.assignedBeastUid),
+          );
           if (st) st.assignedBeastUid = o.uid;
         }
       }
@@ -691,7 +693,7 @@ export class Game {
     // Walk-over gather — step on a pile; blocked only when that stack is full
     const g = tryGather(this.resources, this.player.position, this.inv, dt);
     this._nearGather = g;
-    if (g.gained) {
+    if (hasText(g.gained)) {
       this.audio.playGather();
       this.floatText.spawn(
         this.player.position.clone().add(new THREE.Vector3(0, 1.5, 0)),
@@ -705,7 +707,7 @@ export class Game {
           'Schau den goldenen Glimmerpouch an. Glimmer-Strahl = Ziel. Violett = noch nicht · Grün = F drücken & HALTEN bis 100%.',
         );
       }
-    } else if (g.full && g.kind && this.playTime - this.lastFullToast > 2.5) {
+    } else if (g.full === true && hasText(g.kind) && this.playTime - this.lastFullToast > 2.5) {
       this.lastFullToast = this.playTime;
       this.hud.toast(gatherPrompt(null, false, 0, true, g.kind));
     }
@@ -864,7 +866,7 @@ export class Game {
         for (const o of this.owned) {
           if (!o.fieldSlot) continue;
           const msg = gainBondXp(o, 1.2);
-          if (msg) this.hud.toast(msg);
+          if (hasText(msg)) this.hud.toast(msg);
         }
         this.handleWildDeath(beast);
       },
@@ -889,13 +891,13 @@ export class Game {
       } else {
         applyDamageToBeast(beast, scaled, scaled > 15);
       }
-      flashMesh(beast.mesh, meta.soft ? 0xaa66ff : 0xffe9a8, 100);
+      flashMesh(beast.mesh, meta.soft === true ? 0xaa66ff : 0xffe9a8, 100);
       this.shake.add(0.08);
       this.feelCam.addPunch(0.15);
       this.hitMarker.pulse(beast.hp <= 0 ? 'kill' : 'hit');
       this.trails.burst(
         beast.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)),
-        meta.soft ? 0xaa66ff : 0xffe9a8,
+        meta.soft === true ? 0xaa66ff : 0xffe9a8,
         5,
         2,
       );
@@ -905,8 +907,8 @@ export class Game {
         '#ffe9a8',
       );
       this.audio.playHit();
-      if (meta.soft) beast.calmed = true;
-      if (meta.interrupt) {
+      if (meta.soft === true) beast.calmed = true;
+      if (meta.interrupt === true) {
         beast.overheated = false;
         beast.partBroken = true;
       }
@@ -971,9 +973,10 @@ export class Game {
           : msg.includes('Barren') && smelt
             ? smelt.position
             : this.player.position;
+      const produced = msg.split('—')[0]?.trim();
       this.floatText.spawn(
         at.clone().add(new THREE.Vector3(0, 1.8, 0)),
-        msg.split('—')[0]?.trim() || msg,
+        hasText(produced) ? produced : msg,
         '#7dff9a',
       );
       if (msg.includes('Holz')) this.pulseStationStack('lumber');
@@ -991,9 +994,9 @@ export class Game {
       isNight,
       this.heat.watcherSeen,
     );
-    if (ev.toast) this.hud.toast(ev.toast);
-    if (ev.damage) this.player.takeDamage(ev.damage);
-    if (ev.spawnPamphlet) this.spawnPamphletNearPlayer();
+    if (hasText(ev.toast)) this.hud.toast(ev.toast);
+    if (nonzero(ev.damage)) this.player.takeDamage(ev.damage);
+    if (ev.spawnPamphlet === true) this.spawnPamphletNearPlayer();
     if (ev.spawnWatcher) {
       this.spawnWatcher(ev.spawnWatcher);
       this.heat.watcherSeen = true;
@@ -1131,7 +1134,7 @@ export class Game {
       this.helpStrip.set(
         `<b>BEREIT:</b> <span class="ok">F drücken und halten</span> · grüner Glimmer · Entführung startet`,
       );
-    } else if (this._nearGather.full && this._nearGather.kind) {
+    } else if (this._nearGather.full === true && hasText(this._nearGather.kind)) {
       this.helpStrip.set(
         `<b>VOLL:</b> <span class="hint">Inventar voll für diesen Rohstoff</span> — bauen/verbrauchen, dann wieder drüberlaufen`,
       );
@@ -1296,7 +1299,7 @@ export class Game {
     if (!this.focusBeast) {
       this.glimmer.hide();
       this.targetFx.setTarget(null, 'off');
-      if (this.lastFocusId) {
+      if (hasText(this.lastFocusId)) {
         // reset lift on previous if any still in wild
         for (const w of this.wild) {
           if (w.id === this.lastFocusId) this.targetFx.resetLift(w);
@@ -1486,7 +1489,7 @@ export class Game {
   private handleWildDeath(beast: WildBeast) {
     if (beast.hp > 0 || beast.state === 'captured') return;
     const t = this.heat.onKill();
-    if (t) this.hud.toast(t);
+    if (hasText(t)) this.hud.toast(t);
     beast.mesh.visible = false;
     beast.state = 'captured';
     this.scene.remove(beast.mesh);
@@ -1541,18 +1544,18 @@ export class Game {
     this.grantMilestone('first_bind');
     if (this.owned.length === 1) {
       const ht = this.heat.onFirstBind();
-      if (ht) this.hud.toast(ht);
+      if (hasText(ht)) this.hud.toast(ht);
     }
     this.persist(true);
 
     if (target.speciesId === 'B12') {
       const t = this.heat.onEliteBind();
-      if (t) this.hud.toast(t);
+      if (hasText(t)) this.hud.toast(t);
       this.grantMilestone('boss');
       this.boss = null;
     } else {
       const toast = this.heat.add(3, 'bind');
-      if (toast) this.hud.toast(toast);
+      if (hasText(toast)) this.hud.toast(toast);
     }
     if (this.tutorialStep < 2) {
       this.tutorialStep = 2;
@@ -1561,7 +1564,7 @@ export class Game {
     const lumber = this.stations.find((s) => s.kind === 'lumber');
     if (
       lumber &&
-      !lumber.assignedBeastUid &&
+      !hasText(lumber.assignedBeastUid) &&
       sp.workTags.some((t) => t.includes('lumber') || t.includes('haul'))
     ) {
       ob.job = 'lumber';
@@ -1744,7 +1747,7 @@ export class Game {
     this.buildGhost.traverse((c) => {
       if (c instanceof THREE.Mesh) {
         const src = c.material as THREE.MeshStandardMaterial;
-        if (!c.userData._ghostMat) {
+        if (c.userData._ghostMat !== true) {
           const m = src.clone();
           m.transparent = true;
           m.depthWrite = false;
@@ -1790,21 +1793,24 @@ export class Game {
       'tower',
     ];
     this.clearBuildGhost();
-    if (!this.buildMode) {
-      this.buildMode = 'bed';
+    const current = this.buildMode;
+    let nextMode: Station['kind'];
+    if (current == null) {
+      nextMode = 'bed';
     } else {
-      const i = order.indexOf(this.buildMode);
+      const i = order.indexOf(current);
       const next = i >= 0 ? at(order, i + 1) : undefined;
       if (next === undefined) {
         this.buildMode = null;
         this.hud.toast('Baumodus aus.');
         return;
       }
-      this.buildMode = next;
+      nextMode = next;
     }
-    const de = STATION_DE[this.buildMode!];
-    const costStr = this.formatCostDe(this.buildMode!);
-    const ok = canAfford(this.inv, this.buildMode!);
+    this.buildMode = nextMode;
+    const de = STATION_DE[nextMode];
+    const costStr = this.formatCostDe(nextMode);
+    const ok = canAfford(this.inv, nextMode);
     this.hud.toast(
       `Bauen: ${de} (${costStr}). ${ok ? 'Grün = leistbar' : 'Rot = zu teuer'} · E platzieren.`,
     );
@@ -1835,7 +1841,7 @@ export class Game {
     this.hud.toast(`${deName} gebaut — bleibt stehen (Turm nur bei Raid-Zerstörung).`);
     if (kind === 'tower') {
       const t = this.heat.onTowerBuilt();
-      if (t) {
+      if (hasText(t)) {
         this.hud.toast(t);
         this.audio.playHeat();
       }
@@ -1845,7 +1851,7 @@ export class Game {
     // Demo Law #3 ramp: first permanent station raises heat toward pamphlet/Watcher
     if (this.stations.length === 1) {
       const t = this.heat.onFirstBase();
-      if (t) this.hud.toast(t);
+      if (hasText(t)) this.hud.toast(t);
     }
     if (kind === 'lumber') {
       this.grantMilestone('lumber');
@@ -1910,14 +1916,14 @@ export class Game {
   }
 
   private openAssign() {
-    const modal = document.getElementById('assign-modal')!;
-    const buttons = document.getElementById('assign-buttons')!;
+    const modal = requireElement('assign-modal');
+    const buttons = requireElement('assign-buttons');
     buttons.innerHTML = '';
     if (!this.owned.length) {
       this.hud.toast('Noch keine gebundene Bestie.');
       return;
     }
-    document.getElementById('assign-desc')!.textContent = 'Bestie wählen, dann Job.';
+    requireElement('assign-desc').textContent = 'Bestie wählen, dann Job.';
     for (const b of this.owned) {
       const btn = document.createElement('button');
       const jobDe = JOB_DE[b.job ?? 'idle'] ?? b.job ?? 'idle';
@@ -1930,7 +1936,7 @@ export class Game {
   }
 
   private pickJobFor(b: OwnedBeast) {
-    const buttons = document.getElementById('assign-buttons')!;
+    const buttons = requireElement('assign-buttons');
     buttons.innerHTML = '';
     const fieldBtn = document.createElement('button');
     fieldBtn.textContent = b.fieldSlot ? 'Vom Feld zurückrufen' : 'In den Feldtrupp';
@@ -1938,7 +1944,7 @@ export class Game {
       const msg = toggleFieldSlot(this.owned, b.uid);
       this.party.sync(this.owned);
       this.hud.toast(msg);
-      document.getElementById('assign-modal')!.classList.remove('show');
+      requireElement('assign-modal').classList.remove('show');
       this.audio.playUI();
     };
     buttons.appendChild(fieldBtn);
@@ -1953,7 +1959,7 @@ export class Game {
     ];
     for (const j of jobs) {
       const btn = document.createElement('button');
-      btn.textContent = j.label!;
+      btn.textContent = j.label;
       btn.onclick = () => {
         // Clear previous station assignment
         for (const s of this.stations) {
@@ -1965,22 +1971,24 @@ export class Game {
           b.fieldSlot = false;
         }
         if (b.job === 'lumber') {
-          const st = this.stations.find((s) => s.kind === 'lumber' && !s.assignedBeastUid);
+          const st = this.stations.find((s) => s.kind === 'lumber' && !hasText(s.assignedBeastUid));
           if (st) st.assignedBeastUid = b.uid;
           else if (!this.stations.some((s) => s.kind === 'lumber')) {
             this.hud.toast('Zuerst Sägeplatz bauen (B).');
           }
         }
         if (b.job === 'smelt') {
-          const st = this.stations.find((s) => s.kind === 'smelter' && !s.assignedBeastUid);
+          const st = this.stations.find(
+            (s) => s.kind === 'smelter' && !hasText(s.assignedBeastUid),
+          );
           if (st) st.assignedBeastUid = b.uid;
         }
         this.party.sync(this.owned);
         this.workers.sync(this.owned, this.stations);
-        document.getElementById('assign-modal')!.classList.remove('show');
+        requireElement('assign-modal').classList.remove('show');
         if (b.job === 'lumber' || b.job === 'smelt') {
           const t = this.heat.onFirstWorker();
-          if (t) this.hud.toast(t);
+          if (hasText(t)) this.hud.toast(t);
           this.hud.toast(`${b.name} arbeitet am Posten — du kannst weggehen.`);
           // Grow wood stack spectacle
           this.pulseStationStack(b.job === 'lumber' ? 'lumber' : 'smelter');
@@ -2019,23 +2027,23 @@ export class Game {
       // Allow anyway after some progress
       if (this.owned.length < 1 && this.heat.heat < 10) return;
     }
-    document.getElementById('path-modal')!.classList.add('show');
+    requireElement('path-modal').classList.add('show');
     this.audio.playUI();
   }
 
   private choosePath(p: PathFlag) {
     this.path = p;
-    document.getElementById('path-modal')!.classList.remove('show');
+    requireElement('path-modal').classList.remove('show');
     if (p === 'vita') {
       const t = this.heat.onPathVita();
-      if (t) this.hud.toast(t);
+      if (hasText(t)) this.hud.toast(t);
       this.hud.toast('Vita färbt die Arcana grün. Wachstum ist Hunger mit Mauer.');
       this.hud.setJournal('Vita. Partner, keine Leibeigenen — es sei denn, du vergisst es.');
       this.player.maxHp += 15;
       this.player.hp += 15;
     } else if (p === 'mortis') {
       const t = this.heat.onPathMortis();
-      if (t) this.hud.toast(t);
+      if (hasText(t)) this.hud.toast(t);
       this.hud.toast('Mortis brennt die Nacht. Macht kommt pünktlich.');
       this.hud.setJournal('Mortis. Loyalität ist eine Einstellung. Rechnung an den Rat.');
       this.inv.chalk_snare += 2;
@@ -2265,7 +2273,7 @@ export class Game {
       return;
     }
     const g = this._nearGather;
-    if (g.full || g.node) {
+    if (g.full === true || g.node != null) {
       this.hud.setPrompt(gatherPrompt(g.node, false, 0, Boolean(g.full), g.kind ?? g.node?.kind));
       return;
     }

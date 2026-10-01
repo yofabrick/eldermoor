@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { hasText, nonzero, requireCanvas2d } from '../core/util';
 
 export type BarKind = 'enemy' | 'ally';
 
@@ -52,7 +53,8 @@ export class BeastBars {
       this.paint(spr, ratio, t.kind, t.label, t.tier);
       spr.position.copy(t.position);
       spr.position.y = t.height;
-      spr.scale.set(t.kind === 'ally' ? 1.35 : 1.25, t.label || t.tier ? 0.48 : 0.22, 1);
+      const hasHead = hasText(t.label) || nonzero(t.tier);
+      spr.scale.set(t.kind === 'ally' ? 1.35 : 1.25, hasHead ? 0.48 : 0.22, 1);
       spr.visible = true;
     }
     for (const [id, spr] of this.bars) {
@@ -85,10 +87,10 @@ export class BeastBars {
   private paint(spr: THREE.Sprite, ratio: number, kind: BarKind, label?: string, tier = 0) {
     const canvas = spr.userData.canvas as HTMLCanvasElement;
     const tex = spr.userData.tex as THREE.CanvasTexture;
-    const ctx = canvas.getContext('2d')!;
+    const ctx = requireCanvas2d(canvas);
     ctx.clearRect(0, 0, 160, 48);
 
-    const hasHead = Boolean(label || tier);
+    const hasHead = hasText(label) || nonzero(tier);
     const barY = hasHead ? 22 : 14;
     const barH = 12;
     // background
@@ -102,7 +104,7 @@ export class BeastBars {
     ctx.lineWidth = 2;
     ctx.strokeRect(4, barY, 152, barH);
 
-    if (label) {
+    if (hasText(label)) {
       ctx.font = 'bold 11px Segoe UI, Arial, sans-serif';
       ctx.textAlign = 'left';
       ctx.fillStyle = kind === 'enemy' ? '#ffb0b0' : '#b8ffd4';

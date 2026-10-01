@@ -1,4 +1,5 @@
 import type * as THREE from 'three';
+import { pick } from '../core/util';
 
 /** Seeded mulberry32 PRNG for deterministic ambient scatter. */
 function mulberry32(seed: number): () => number {
@@ -190,7 +191,7 @@ export function scatterAmbientProps(
       const capR = 0.08 + rng() * 0.12;
       const cap = new THREE.Mesh(
         new THREE.SphereGeometry(capR, 6, 5, 0, Math.PI * 2, 0, Math.PI * 0.55),
-        mushroomCapMats[Math.floor(rng() * mushroomCapMats.length)]!,
+        pick(mushroomCapMats, Math.floor(rng() * mushroomCapMats.length)),
       );
       cap.position.set(stem.position.x, h + capR * 0.15, stem.position.z);
       cap.castShadow = true;
@@ -226,7 +227,7 @@ export function scatterAmbientProps(
   // --- Grass tufts (cards + cones) ---
   for (let i = 0; i < nGrass; i++) {
     const g = new THREE.Group();
-    const mat = grassMats[Math.floor(rng() * grassMats.length)]!;
+    const mat = pick(grassMats, Math.floor(rng() * grassMats.length));
     const blades = 2 + Math.floor(rng() * 3);
     for (let j = 0; j < blades; j++) {
       if (rng() > 0.4) {

@@ -1,4 +1,5 @@
 import type { Inventory, Station } from '../core/types';
+import { nonzero } from '../core/util';
 import type * as ThreeNS from 'three';
 import { makeBarkTexture, makeStoneTexture } from '../render/ProceduralTextures';
 
@@ -81,7 +82,8 @@ function box(
 ) {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(THREE, color, opts));
   mesh.position.set(opts?.x ?? 0, y, opts?.z ?? 0);
-  if (opts?.ry) mesh.rotation.y = opts.ry;
+  const ry = opts?.ry;
+  if (nonzero(ry)) mesh.rotation.y = ry;
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   return mesh;
@@ -110,8 +112,10 @@ function cyl(
     mat(THREE, color, opts),
   );
   mesh.position.set(opts?.x ?? 0, y, opts?.z ?? 0);
-  if (opts?.rx) mesh.rotation.x = opts.rx;
-  if (opts?.rz) mesh.rotation.z = opts.rz;
+  const rx = opts?.rx;
+  const rz = opts?.rz;
+  if (nonzero(rx)) mesh.rotation.x = rx;
+  if (nonzero(rz)) mesh.rotation.z = rz;
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   return mesh;

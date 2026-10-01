@@ -286,7 +286,7 @@ export class ViewmodelWand {
     this.camera.remove(this.root);
     const geos = new Set<THREE.BufferGeometry>();
     this.root.traverse((obj) => {
-      if (obj instanceof THREE.Mesh && obj.geometry) geos.add(obj.geometry);
+      if (obj instanceof THREE.Mesh && obj.geometry != null) geos.add(obj.geometry);
     });
     for (const g of geos) g.dispose();
     this.handleMat.dispose();

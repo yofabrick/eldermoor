@@ -218,8 +218,9 @@ export class BossAshcrown {
     // --- Breath: cone telegraph, then damage + fire VFX ---
     if (this.breathWindup > 0) {
       this.breathWindup -= dt;
-      if (this.breathWindup <= 0 && this.pendingBreathDir) {
-        this.resolveBreath(playerPos, onPlayerDamage);
+      const breathDir = this.pendingBreathDir;
+      if (this.breathWindup <= 0 && breathDir != null) {
+        this.resolveBreath(playerPos, onPlayerDamage, breathDir);
         this.pendingBreathDir = null;
       }
     } else if (this.breathCd <= 0 && dist < 16 && this.stompWindup <= 0) {
@@ -287,8 +288,11 @@ export class BossAshcrown {
   }
 
   /** Fire VFX + cone damage after telegraph completes */
-  private resolveBreath(playerPos: THREE.Vector3, onPlayerDamage: (n: number, k: string) => void) {
-    const dir = this.pendingBreathDir!;
+  private resolveBreath(
+    playerPos: THREE.Vector3,
+    onPlayerDamage: (n: number, k: string) => void,
+    dir: THREE.Vector3,
+  ) {
     const origin = this.beast.mesh.position.clone();
     origin.y = 1.2;
 
