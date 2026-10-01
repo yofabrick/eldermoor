@@ -105,6 +105,17 @@ export class Player {
       // mouse up (negative movementY) → decrease pitch value → look higher
       this.pitch = THREE.MathUtils.clamp(this.pitch - mouse.dy * 0.0022, 0.12, 1.15);
     }
+    // Arrow look matches mouse: right/down decrease yaw/pitch. Works without pointer lock,
+    // which is what the browser end-to-end run (and a keyboard-only player) can actually do.
+    const look = 2.4 * dt;
+    if (input.pressed('ArrowLeft')) this.yaw += look;
+    if (input.pressed('ArrowRight')) this.yaw -= look;
+    if (input.pressed('ArrowUp')) {
+      this.pitch = THREE.MathUtils.clamp(this.pitch - look, 0.12, 1.15);
+    }
+    if (input.pressed('ArrowDown')) {
+      this.pitch = THREE.MathUtils.clamp(this.pitch + look, 0.12, 1.15);
+    }
 
     const forward = this.forward;
     const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
